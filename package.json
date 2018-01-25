@@ -1,0 +1,22 @@
+{
+  "name": "tokyo-solidity-template",
+  "version": "0.1.0",
+  "description": "Make solidity contract based on user input",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Onther-Tech/tokyo-solidity-template.git"
+  },
+  "keywords": [
+    "tokyo"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Onther-Tech/tokyo-solidity-template/issues"
+  },
+  "homepage": "https://github.com/Onther-Tech/tokyo-solidity-template#readme"
+}

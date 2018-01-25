@@ -4,7 +4,10 @@
   "description": "Make solidity contract based on user input",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "babel src --out-dir dist",
+    "test": "mocha --require babel-register --reporter spec||exit 0",
+    "publish": "npm run build && npm publish",
+    "publish:beta": "npm run build && npm publish --tag beta"
   },
   "repository": {
     "type": "git",
@@ -18,5 +21,25 @@
   "bugs": {
     "url": "https://github.com/Onther-Tech/tokyo-solidity-template/issues"
   },
-  "homepage": "https://github.com/Onther-Tech/tokyo-solidity-template#readme"
+  "homepage": "https://github.com/Onther-Tech/tokyo-solidity-template#readme",
+  "dependencies": {
+    "babel-register": "^6.26.0",
+    "bignumber.js": "^5.0.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
+    "eslint": "^4.16.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-jsx-a11y": "^6.0.3",
+    "joi": "^13.1.1",
+    "joi-date-extensions": "^1.1.0",
+    "moment": "^2.20.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-stage-1": "^6.24.1",
+    "eslint-config-airbnb": "^16.1.0",
+    "mocha": "^5.0.0"
+  }
 }

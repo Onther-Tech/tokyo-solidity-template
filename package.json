@@ -6,6 +6,7 @@
   "scripts": {
     "build": "babel src --out-dir dist",
     "test": "mocha --require babel-polyfill --require babel-register --reporter spec||exit 0",
+    "test:verbose": "VERBOSE=true npm run test",
     "publish": "npm run build && npm publish",
     "publish:beta": "npm run build && npm publish --tag beta"
   },

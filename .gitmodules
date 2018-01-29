@@ -4,3 +4,6 @@
 [submodule "tokyo-reusable-crowdsale"]
 	path = tokyo-reusable-crowdsale
 	url = https://github.com/Onther-Tech/tokyo-reusable-crowdsale.git
+[submodule "tokyo-schema"]
+	path = tokyo-schema
+	url = https://github.com/Onther-Tech/tokyo-schema.git

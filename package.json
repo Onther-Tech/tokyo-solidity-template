@@ -40,7 +40,8 @@
     "mem-fs-editor": "^4.0.0",
     "mkdirp": "^0.5.1",
     "moment": "^2.20.1",
-    "ncp": "^2.0.0"
+    "ncp": "^2.0.0",
+    "tokyo-schema": "^0.1.2"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

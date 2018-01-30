@@ -1,7 +1,48 @@
-pragma solidity^0.4.18;
+<%
+  // the num of constructor parameters of MiniMeBaseCrowdsale & ZeppelinBaseCrowdsale
+  const defaultConstructorsLength = 8;
 
-<%- include('_imports.ejs', {input}) %>
+  const parentsList = parseResult.crowdsale.parentsList;
+  const importStatements = parseResult.crowdsale.importStatements;
+%><%- include("partials/version.ejs") %>
 
-contract Crowdsale is SomeBaseCrowdsale {
+<% writeImportStatements() %>
 
+contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
+<% writeCrowdsaleBody() %>
 }
+
+<%
+  function writeImportStatements() { %>
+<%- parseResult.crowdsale.importStatements.join("\n") %>
+  <% }
+%>
+
+
+<%
+  function writeCrowdsaleBody() { %>
+    function Crowdsale(<%- helper.flattenArguments(parseResult.constructors.Crowdsale, true) %>) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
+  <% }
+%>
+
+
+<%
+  function writeConstructorArguments() {
+    const comma = (i) => i < parseResult.constructors.Crowdsale.length - 1 ? ',' : ''
+    parseResult.constructors.Crowdsale.forEach((typeAndArray, i) => {%>
+      <%- `${typeAndArray[0]} ${helper.getLastName(typeAndArray[1])}${comma(i)}` %><% }) %> <% } %>
+
+<%
+  function writeSuperModifiers() { %>
+    <%- parseResult.crowdsale.parentsList.map(parent => {
+      // const typeAndArray =1
+      // r
+      return 1;
+    }) %>
+  <% }
+%>
+
+
+<%-
+  JSON.stringify(parseResult, undefined, 2)
+%>

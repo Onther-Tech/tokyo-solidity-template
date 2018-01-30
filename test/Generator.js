@@ -1,11 +1,16 @@
-import Generator from "../src/lib/Generator";
 import rimraf from "rimraf";
+import schema from "../tokyo-schema/src";
+import Generator from "../src/lib/Generator";
+
+const verbose = process.env.VERBOSE || false;
 
 const should = require("chai")
   .use(require("chai-as-promised"))
   .should();
 
-const sampleInput = require("./tokyo-test-data/sample1.json");
+const remove = (...args) => !verbose && rimraf.sync(...args);
+
+const sampleInput = schema.validate(require("./tokyo-test-data/sample1.json")).value;
 
 describe("Generator", () => {
   it("should generate", async () => {
@@ -13,6 +18,6 @@ describe("Generator", () => {
     const g = new Generator(sampleInput, outName);
 
     await g.write();
-    // rimraf.sync(outName);
+    remove(outName);
   });
 });

@@ -6,46 +6,58 @@ export function getLastName(str, delimiter = ".") {
   return str.split(delimiter).slice(-1)[ 0 ];
 }
 
-/**
- * @notice flatten `args` into solidity function parameters
- * @param { array } args is form of [ [solidity data type], [path for lodash.get] ]
- */
-export function flattenArguments(args, last = false, numTap = 3, withType = true) {
-  const comma = i => ((!last || i < args.length - 1) ? "," : "");
+export function appendParseFunction(type, argName, index, withType) {
+  if (withType) return `${ type } ${ argName }`;
+  if (type === "uint") return `parseUint(args[${ index }])`;
+  if (type === "address") return `parseAddress(args[${ index }])`;
+  if (type === "bool") return `parseBool(args[${ index }])`;
 
-  return args
-    .map((typeAndPath, i) =>
-      `\n${ writeTap(numTap) }${ withType ? typeAndPath[ 0 ] : "" } ${ getLastName(typeAndPath[ 1 ]) }${ comma(i) }`)
-    .join("");
+  throw new Error("can't recognize type", type);
 }
 
 /**
- * @param { array } args is form of [ [ [solidity data type], [path for lodash.get] ] ]
+ * @notice flatten `args` into solidity function parameters
+ * @param { Array } args is form of [ [solidity data type], [path for lodash.get] ]
+ * @param { Number } numTap the number of tabs
+ * @param { Bool } withType if true, append solidity data type. if false, remove it and use `args`
  */
-export function flattenArgumentsArray(args) {
-  const last = i => i === args.length - 1;
-
+export function flattenArguments(args, startIndex, numTap = 3, withType = true) {
   return args
-    .map((a, i) => flattenArguments(a, last(i)))
-    .join("      \n");
+    .map((typeAndPath, i) => {
+      const type = typeAndPath[ 0 ];
+      const argName = getLastName(typeAndPath[ 1 ]);
+      const value = withType ? argName : appendParseFunction(type, argName, startIndex + i, withType);
+
+      return `\n${ writeTap(numTap) }${ value }`;
+    }).join(",");
 }
 
 /**
  * @param { String } parentName parent contract name to inherit
- * @param { array } args is form of [ [solidity data type], [path for lodash.get] ]
+ * @param { Array } args is form of [ [solidity data type], [path for lodash.get] ]
+ * @param { Number } startIndex index of arguments
  */
-export function writeSuperModifier(parentName, args) {
-  return `${ writeTap(4) }${ parentName } (${ flattenArguments(args, true, 5, false) })`;
+export function writeSuperModifier(parentName, args, startIndex) {
+  return `${ writeTap(4) }${ parentName } (${ flattenArguments(args, startIndex, 5, false) })`;
 }
 
 /**
- * @param { array } parentsList names of parent contracts
+ * @param { Array } parentsList names of parent contracts
  * @param { object } constructors set of arguments of constructors
  */
 export function writeSuperModifiers(parentsList, constructors) {
-  return `\n${
-    parentsList
-      .map(parentName => writeSuperModifier(parentName, constructors[ parentName ]))
-      .join("\n")
-  }`;
+  const ret = [];
+
+  let i = 0;
+
+  parentsList.forEach((parentName) => {
+    const len = constructors[ parentName ].length;
+
+    console.log(writeSuperModifiers, parentName, i);
+    ret.push(writeSuperModifier(parentName, constructors[ parentName ], i));
+
+    i += len;
+  });
+
+  return `\n${ ret.join("\n") }`;
 }

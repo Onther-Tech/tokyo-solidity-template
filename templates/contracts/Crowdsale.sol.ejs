@@ -10,6 +10,18 @@
 
 contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
 <% writeCrowdsaleBody() %>
+
+  function parseBool(bytes32 b) internal pure returns (bool) {
+    return b == 0x1;
+  }
+
+  function parseUint(bytes32 b) internal pure returns (uint) {
+    return uint(b);
+  }
+
+  function parseAddress(bytes32 b) internal pure returns (address) {
+    return address(b);
+  }
 }
 
 <%
@@ -21,7 +33,7 @@ contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
 
 <%
   function writeCrowdsaleBody() { %>
-    function Crowdsale(<%- helper.flattenArguments(parseResult.constructors.Crowdsale, true) %>) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
+    function Crowdsale(bytes32[] args) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
   <% }
 %>
 
@@ -32,15 +44,6 @@ contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
     parseResult.constructors.Crowdsale.forEach((typeAndArray, i) => {%>
       <%- `${typeAndArray[0]} ${helper.getLastName(typeAndArray[1])}${comma(i)}` %><% }) %> <% } %>
 
-<%
-  function writeSuperModifiers() { %>
-    <%- parseResult.crowdsale.parentsList.map(parent => {
-      // const typeAndArray =1
-      // r
-      return 1;
-    }) %>
-  <% }
-%>
 
 
 <%-

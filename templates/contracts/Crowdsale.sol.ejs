@@ -4,12 +4,13 @@
 
   const parentsList = parseResult.crowdsale.parentsList;
   const importStatements = parseResult.crowdsale.importStatements;
-%><%- include("partials/version.ejs") %>
+-%>
+<%- include("partials/version.ejs") -%>
 
-<% writeImportStatements() %>
+<%- writeImportStatements() %>
 
 contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
-<% writeCrowdsaleBody() %>
+<% writeCrowdsaleBody() -%>
 
   function parseBool(bytes32 b) internal pure returns (bool) {
     return b == 0x1;
@@ -25,9 +26,9 @@ contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
 }
 
 <%
-  function writeImportStatements() { %>
-<%- parseResult.crowdsale.importStatements.join("\n") %>
-  <% }
+  function writeImportStatements() {
+    return parseResult.crowdsale.importStatements.join("\n");
+  }
 %>
 
 
@@ -35,17 +36,4 @@ contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
   function writeCrowdsaleBody() { %>
     function Crowdsale(bytes32[] args) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
   <% }
-%>
-
-
-<%
-  function writeConstructorArguments() {
-    const comma = (i) => i < parseResult.constructors.Crowdsale.length - 1 ? ',' : ''
-    parseResult.constructors.Crowdsale.forEach((typeAndArray, i) => {%>
-      <%- `${typeAndArray[0]} ${helper.getLastName(typeAndArray[1])}${comma(i)}` %><% }) %> <% } %>
-
-
-
-<%-
-  JSON.stringify(parseResult, undefined, 2)
 %>

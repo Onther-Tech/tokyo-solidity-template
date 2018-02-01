@@ -1,0 +1,49 @@
+const moment = require("moment");
+const get = require('lodash/get');
+
+const BigNumber = web3.BigNumber;
+
+const dateToNumber = (str) => moment(str).unix();
+
+module.exports = async function (deployer, network, accounts) {
+  const address = {};
+  const input = getInput();
+
+  const data = { address, input };
+
+  // contract instance
+  let kyc, vault, token, crowdsale;
+
+  /**
+   * Deploy contracts sequentually
+   *  1-1. KYC / Vault
+   *  1-2. Lockers
+   *  2. Token
+   *  3. Crowdsale
+   *   - transfer ownerships of vault, token to crowdsale
+   */
+
+  deployer.deploy([
+    KYC,
+    Vault,
+  ]).then(async () => {
+    kyc = await KYC.deployed();
+    vault = await Vault.deployed();
+
+    address.kyc = kyc.address;
+    address.vault = vault.address;
+  }).then(() => deployer.deploy([
+    
+  ])).then(() => deployer.deploy([
+    [Token, 0]
+  ])).then(() => {
+    token = await Token.deployed();
+
+    address.token = token.address;
+  });
+};
+
+
+function getInput() {
+  return JSON.parse("<%- helper.serialize(input) -%>");
+}

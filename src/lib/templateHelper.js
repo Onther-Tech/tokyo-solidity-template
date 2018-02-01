@@ -1,3 +1,7 @@
+export function serialize(json) {
+  return JSON.stringify(json).replace(/"/g, "'");
+}
+
 export function writeTap(numTap) {
   return "  ".repeat(numTap);
 }

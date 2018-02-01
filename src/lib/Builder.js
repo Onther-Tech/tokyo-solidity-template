@@ -8,7 +8,7 @@ import Parser from "./Parser";
 
 /**
  * @title Builder
- * @notice Builder builds templates into smart contracts based on user input.
+ * @notice Builder read and write template with the input.
  */
 export default class Builder {
   constructor(input) {

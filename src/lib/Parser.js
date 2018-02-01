@@ -37,12 +37,15 @@ export default class Parser {
 
     const token = f(); // for token contract
     const crowdsale = f(); // for crowdsale contract
-    const migration = f(); // for truffle migration script
-    const constructors = {}; // for crowdsale constructor
+    const migration = {}; // for truffle migration script
+    const constructors = {}; // for constructors for Crowdsale, Locker
 
     setDefaultCrowdsaleParent({ crowdsale, constructors });
 
     const input = this.input;
+
+    // parse input.locker
+    migration.Lockers = this.parseLockers();
 
     // parse input.token
     if (input.token.token_type.is_minime) {
@@ -111,5 +114,22 @@ export default class Parser {
     });
 
     return { token, crowdsale, migration, constructors };
+  }
+
+  parseLockers() {
+    const input = this.input;
+    const ret = [];
+
+    if (!input.locker.use_locker) {
+      return ret;
+    }
+
+    input.locker.locker_options.forEach((options) => {
+      ret.push([
+        // TODO: fill locker constructor parameters
+      ]);
+    });
+
+    return ret;
   }
 }

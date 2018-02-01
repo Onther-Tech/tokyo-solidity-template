@@ -1,7 +1,4 @@
 <%
-  // the num of constructor parameters of MiniMeBaseCrowdsale & ZeppelinBaseCrowdsale
-  const defaultConstructorsLength = 8;
-
   const parentsList = parseResult.crowdsale.parentsList;
   const importStatements = parseResult.crowdsale.importStatements;
 -%>
@@ -9,7 +6,7 @@
 
 <%- writeImportStatements() %>
 
-contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
+contract Crowdsale is <%- parentsList.join(", ") %> {
 <% writeCrowdsaleBody() -%>
 
   function parseBool(bytes32 b) internal pure returns (bool) {
@@ -27,10 +24,9 @@ contract Crowdsale is <%- parseResult.crowdsale.parentsList.join(", ") %> {
 
 <%
   function writeImportStatements() {
-    return parseResult.crowdsale.importStatements.join("\n");
+    return importStatements.join("\n");
   }
 %>
-
 
 <%
   function writeCrowdsaleBody() { %>

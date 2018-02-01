@@ -1,13 +1,9 @@
 <%
-  const parentsList = [];
-  const importStatements = [];
-
-  parseInputs(input);
-%>
-
-<%- include("partials/version.ejs") %>
-
-<% writeImportStatements() %>
+  const parentsList = parseResult.token.parentsList;
+  const importStatements = parseResult.token.importStatements;
+-%>
+<%- include("partials/version.ejs") -%>
+<%- writeImportStatements() -%>
 
 contract Token is <%- parentsList.join(", ") %> { <%
     if (input.token.token_type.is_minime) {
@@ -17,30 +13,6 @@ contract Token is <%- parentsList.join(", ") %> { <%
     }
   %>
 }
-
-
-<%
-  function parseInputs(input) {
-    if (input.token.token_type.is_minime) {
-      parentsList.push("MiniMeToken");
-      importStatements.push(`import "./base/minime/MiniMeToken.sol";`);
-    } else {
-      parentsList.push("Mintable");
-      importStatements.push(`import "./base/zeppelin/token/Mintable.sol";`);
-
-      if (input.token.token_option && input.token.token_option.burnable) {
-        parentsList.push("BurnableToken");
-        importStatements.push(`import "./base/zeppelin/token/BurnableToken.sol";`);
-      }
-
-      if (input.token.token_option && input.token.token_option.pausable) {
-        parentsList.push("Pausable");
-        importStatements.push(`import "./base/zeppelin/lifecycle/Pausable.sol";`);
-      }
-    }
-  }
-%>
-
 
 <%
   function writeImportStatements() { %>

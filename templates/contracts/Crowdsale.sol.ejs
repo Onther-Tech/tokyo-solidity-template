@@ -7,7 +7,9 @@
 <%- writeImportStatements() %>
 
 contract Crowdsale is <%- parentsList.join(", ") %> {
-<% writeCrowdsaleBody() -%>
+  bool public initialized;
+
+<% writeConstructor() -%>
 
   function parseBool(bytes32 b) internal pure returns (bool) {
     return b == 0x1;
@@ -20,6 +22,13 @@ contract Crowdsale is <%- parentsList.join(", ") %> {
   function parseAddress(bytes32 b) internal pure returns (address) {
     return address(b);
   }
+
+  function init(bytes32[] args) external onlyOwner {
+    require(!initialized);
+    initialized = true;
+
+<%- parseResult.initBody %>
+  }
 }
 
 <%
@@ -29,7 +38,7 @@ contract Crowdsale is <%- parentsList.join(", ") %> {
 %>
 
 <%
-  function writeCrowdsaleBody() { %>
+  function writeConstructor() { %>
     function Crowdsale(bytes32[] args) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
   <% }
 %>

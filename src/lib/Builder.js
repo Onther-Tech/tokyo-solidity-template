@@ -13,6 +13,7 @@ import Parser from "./Parser";
 export default class Builder {
   constructor(input) {
     this.input = input;
+    console.log(JSON.stringify(input, null, 2));
     this.parser = new Parser(input);
 
     this.store = memFs.create();
@@ -34,6 +35,10 @@ export default class Builder {
     });
   }
 
+  getDataObj(parseResult) {
+    return { input: this.input, helper: templateHelper, parseResult };
+  }
+
   writeContracts(parseResult) {
     const dirName = "contracts";
 
@@ -41,14 +46,14 @@ export default class Builder {
     this.fs.copyTpl(
       this.tmplPath(dirName, "Crowdsale.sol.ejs"),
       this.targetPath(dirName, "Crowdsale.sol"),
-      { input: this.input, helper: templateHelper, parseResult },
+      this.getDataObj(parseResult),
     );
 
     // token
     this.fs.copyTpl(
       this.tmplPath(dirName, "Token.sol.ejs"),
       this.targetPath(dirName, "Token.sol"),
-      { input: this.input, helper: templateHelper, parseResult },
+      this.getDataObj(parseResult),
     );
   }
 
@@ -58,7 +63,7 @@ export default class Builder {
     this.fs.copyTpl(
       this.tmplPath(dirName, "2_deploy_contracts.js.ejs"),
       this.targetPath(dirName, "2_deploy_contracts.js"),
-      { input: this.input, helper: templateHelper, parseResult },
+      this.getDataObj(parseResult),
     );
   }
 
@@ -69,14 +74,14 @@ export default class Builder {
     this.fs.copyTpl(
       this.tmplPath(dirName, "Crowdsale.js.ejs"),
       this.targetPath(dirName, "Crowdsale.js"),
-      { input: this.input, helper: templateHelper, parseResult },
+      this.getDataObj(parseResult),
     );
 
     // token
     this.fs.copyTpl(
       this.tmplPath(dirName, "Token.js.ejs"),
       this.targetPath(dirName, "Token.js"),
-      { input: this.input, helper: templateHelper, parseResult },
+      this.getDataObj(parseResult),
     );
   }
 }

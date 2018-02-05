@@ -1,23 +1,23 @@
+import moment from "moment";
+import {
+  writeTap,
+  convertDateString,
+} from "./templateHelper";
+
 // common constructor parameters for ZeppelinBaseCrowdsale & MiniMeBaseCrowdsale
 // [ [solidity data type], [path for lodash.get] ]
-const defaultConstructors = () => [
-  ["uint", "input.sale.start_time"],
-  ["uint", "input.sale.end_time"],
-  ["uint", "input.sale.rate.base_rate"],
-  ["uint", "input.sale.coeff"],
-  ["uint", "input.sale.max_cap"],
-  ["uint", "input.sale.min_cap"],
+const defaultConstructors = input => [
+  ["uint", "input.sale.start_time", input.sale.start_time],
+  ["uint", "input.sale.end_time", input.sale.end_time],
+  ["uint", "input.sale.rate.base_rate", input.sale.rate.base_rate],
+  ["uint", "input.sale.coeff", input.sale.coeff],
+  ["uint", "input.sale.max_cap", input.sale.max_cap],
+  ["uint", "input.sale.min_cap", input.sale.min_cap],
   ["address", "address.vault"],
-  ["address", "input.sale.new_token_owner"],
+  ["address", "address.locker"],
+  ["address", "input.sale.new_token_owner", input.sale.new_token_owner],
   ["address", "address.token"],
 ];
-
-const setDefaultCrowdsaleParent = ({ crowdsale, constructors }) => {
-  crowdsale.parentsList.push("BaseCrowdsale");
-  crowdsale.importStatements.push("import \"./base/crowdsale/BaseCrowdsale.sol\";");
-
-  constructors.BaseCrowdsale = defaultConstructors();
-};
 
 /**
  * @title Parser
@@ -30,6 +30,8 @@ export default class Parser {
   }
 
   parse() {
+    const { input } = this;
+
     const f = () => ({
       parentsList: [], // super contract name
       importStatements: [], // path to import suprt contract
@@ -39,10 +41,23 @@ export default class Parser {
     const crowdsale = f(); // for crowdsale contract
     const migration = {}; // for truffle migration script
     const constructors = {}; // for constructors for Crowdsale, Locker
+    let initBody = ""; // BaseCrowdsale.init function body
 
-    setDefaultCrowdsaleParent({ crowdsale, constructors });
+    // Ownable for Crowdsale
+    crowdsale.parentsList.push("Ownable");
+    crowdsale.importStatements.push("import \"./base/zeppelin/ownership/Ownable.sol\";");
+    constructors.Ownable = [];
 
-    const input = this.input;
+    // HolderBase.initHolders
+    const numTap = 2;
+    const etherHolders = input.sale.distribution.ether.map(e => e.ether_holder);
+    const etherRatios = input.sale.distribution.ether.map(e => e.ether_ratio);
+
+    initBody += `
+${ writeTap(numTap) }vault.initHolders(
+${ writeTap(numTap + 1) }[ ${ etherHolders.map(i => `"${ i }"`).join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ etherRatios.join(`\n${ writeTap(numTap + 2) }`) } ]
+${ writeTap(numTap) });`;
 
     // parse input.locker
     migration.Lockers = this.parseLockers();
@@ -51,9 +66,19 @@ export default class Parser {
     if (input.token.token_type.is_minime) {
       token.parentsList.push("MiniMeToken");
       token.importStatements.push("import \"./base/minime/MiniMeToken.sol\";");
+
+      crowdsale.parentsList.push("MiniMeBaseCrowdsale");
+      crowdsale.importStatements.push("import \"./base/crowdsale/MiniMeBaseCrowdsale.sol\";");
+
+      constructors.MiniMeBaseCrowdsale = defaultConstructors(input);
     } else {
       token.parentsList.push("Mintable");
       token.importStatements.push("import \"./base/zeppelin/token/Mintable.sol\";");
+
+      crowdsale.parentsList.push("ZeppelinBaseCrowdsale");
+      crowdsale.importStatements.push("import \"./base/crowdsale/ZeppelinBaseCrowdsale.sol\";");
+
+      constructors.ZeppelinBaseCrowdsale = defaultConstructors(input);
 
       if (input.token.token_option && input.token.token_option.burnable) {
         token.parentsList.push("BurnableToken");
@@ -73,7 +98,7 @@ export default class Parser {
       crowdsale.parentsList.push("BonusCrowdsale");
       crowdsale.importStatements.push("import \"./base/crowdsale/BonusCrowdsale.sol\";");
 
-      constructors.BonusCrowdsale = [["uint", "input.sale.rate.bonus_coeff"]];
+      constructors.BonusCrowdsale = [];
     }
 
     // 2. PurchaseLimitedCrowdsale
@@ -81,7 +106,7 @@ export default class Parser {
       crowdsale.parentsList.push("PurchaseLimitedCrowdsale");
       crowdsale.importStatements.push("import \"./base/crowdsale/PurchaseLimitedCrowdsale.sol\";");
 
-      constructors.PurchaseLimitedCrowdsale = [["uint", "input.sale.valid_purchase.max_purchase_limit"]];
+      constructors.PurchaseLimitedCrowdsale = [["uint", "input.sale.valid_purchase.max_purchase_limit", input.sale.valid_purchase.max_purchase_limit]];
     }
 
     // 3. MinimumPaymentCrowdsale
@@ -89,7 +114,7 @@ export default class Parser {
       crowdsale.parentsList.push("MinimumPaymentCrowdsale");
       crowdsale.importStatements.push("import \"./base/crowdsale/MinimumPaymentCrowdsale.sol\";");
 
-      constructors.MinimumPaymentCrowdsale = [["uint", "input.sale.valid_purchase.min_purchase_limit"]];
+      constructors.MinimumPaymentCrowdsale = [["uint", "input.sale.valid_purchase.min_purchase_limit", input.sale.valid_purchase.min_purchase_limit]];
     }
 
     // 4. KYCCrowdsale & StagedCrowdsale
@@ -104,7 +129,21 @@ export default class Parser {
       crowdsale.parentsList.push("StagedCrowdsale");
       crowdsale.importStatements.push("import \"./base/crowdsale/StagedCrowdsale.sol\";");
 
-      constructors.StagedCrowdsale = [["uint", "input.sale.stages_length"]]; // *_length => *.length
+      constructors.StagedCrowdsale = [["uint", "input.sale.stages_length", input.sale.stages.length]]; // *_length => *.length
+
+      // StagedCrowdsale.initPeriods
+      const _get = (key, convertor) =>
+        input.sale.stages.map(s => (convertor ? convertor(s[ key ]) : s[ key ]));
+
+      initBody += `
+      ${ writeTap(numTap) }super.initPeriods(
+      ${ writeTap(numTap + 1) }[ ${ _get("start_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
+      ${ writeTap(numTap + 1) }[ ${ _get("end_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
+      ${ writeTap(numTap + 1) }[ ${ _get("cap_ratio").join(`\n${ writeTap(numTap + 2) }`) } ],
+      ${ writeTap(numTap + 1) }[ ${ _get("max_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
+      ${ writeTap(numTap + 1) }[ ${ _get("min_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
+      ${ writeTap(numTap + 1) }[ ${ _get("kyc").join(`\n${ writeTap(numTap + 2) }`) } ],
+      ${ writeTap(numTap) });`;
     }
 
     // constructor for The Crowdsale
@@ -113,18 +152,24 @@ export default class Parser {
       constructors.Crowdsale = [...constructors.Crowdsale, ...constructors[ parent ]];
     });
 
-    return { token, crowdsale, migration, constructors };
+    return {
+      token,
+      crowdsale,
+      migration,
+      constructors,
+      initBody,
+    };
   }
 
   parseLockers() {
-    const input = this.input;
+    const { input } = this;
     const ret = [];
 
     if (!input.locker.use_locker) {
       return ret;
     }
 
-    input.locker.locker_options.forEach((options) => {
+    input.locker.beneficiaries.forEach((b) => {
       ret.push([
         // TODO: fill locker constructor parameters
       ]);

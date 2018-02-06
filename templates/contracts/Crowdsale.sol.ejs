@@ -39,6 +39,6 @@ contract Crowdsale is <%- parentsList.join(", ") %> {
 
 <%
   function writeConstructor() { %>
-    function Crowdsale(bytes32[] args) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
+  function Crowdsale(bytes32[] args) <%- helper.writeSuperModifiers(parseResult.crowdsale.parentsList, parseResult.constructors) %> public {}
   <% }
 %>

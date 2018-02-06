@@ -28,7 +28,7 @@ export function appendParseFunction(type, argName, index, withType) {
  * @param { Number } numTap the number of tabs
  * @param { Bool } withType if true, append solidity data type. if false, remove it and use `args`
  */
-export function flattenArguments(args, startIndex, numTap = 3, withType = true) {
+export function flattenArguments(args, startIndex, numTap = 2, withType = true) {
   return args
     .map((typeAndPath, i) => {
       const type = typeAndPath[ 0 ];
@@ -45,7 +45,7 @@ export function flattenArguments(args, startIndex, numTap = 3, withType = true) 
  * @param { Number } startIndex index of arguments
  */
 export function writeSuperModifier(parentName, args, startIndex) {
-  return `${ writeTap(4) }${ parentName }(${ flattenArguments(args, startIndex, 5, false) })`;
+  return `${ writeTap(2) }${ parentName }(${ flattenArguments(args, startIndex, 3, false) })`;
 }
 
 /**
@@ -60,7 +60,6 @@ export function writeSuperModifiers(parentsList, constructors) {
   parentsList.forEach((parentName) => {
     const len = constructors[ parentName ].length;
 
-    console.log(writeSuperModifiers, parentName, i);
     ret.push(writeSuperModifier(parentName, constructors[ parentName ], i));
 
     i += len;

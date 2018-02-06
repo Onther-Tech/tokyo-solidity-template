@@ -19,6 +19,9 @@ const defaultConstructors = input => [
   ["address", "address.token"],
 ];
 
+const arrayConvertor = array => (key, convertor) =>
+  array.map(s => (convertor ? convertor(s[ key ]) : s[ key ]));
+
 /**
  * @title Parser
  * @notice Parses user's input to generate inheritance tree for token and crowdsale.
@@ -57,7 +60,8 @@ export default class Parser {
 ${ writeTap(numTap) }vault.initHolders(
 ${ writeTap(numTap + 1) }[ ${ etherHolders.map(i => `"${ i }"`).join(`\n${ writeTap(numTap + 2) }`) } ],
 ${ writeTap(numTap + 1) }[ ${ etherRatios.join(`\n${ writeTap(numTap + 2) }`) } ]
-${ writeTap(numTap) });`;
+${ writeTap(numTap) });
+`;
 
     // parse input.locker
     migration.Lockers = this.parseLockers();
@@ -132,18 +136,32 @@ ${ writeTap(numTap) });`;
       constructors.StagedCrowdsale = [["uint", "input.sale.stages_length", input.sale.stages.length]]; // *_length => *.length
 
       // StagedCrowdsale.initPeriods
-      const _get = (key, convertor) =>
-        input.sale.stages.map(s => (convertor ? convertor(s[ key ]) : s[ key ]));
+      const periodConvertor = arrayConvertor(input.sale.stages);
 
       initBody += `
-      ${ writeTap(numTap) }super.initPeriods(
-      ${ writeTap(numTap + 1) }[ ${ _get("start_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
-      ${ writeTap(numTap + 1) }[ ${ _get("end_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
-      ${ writeTap(numTap + 1) }[ ${ _get("cap_ratio").join(`\n${ writeTap(numTap + 2) }`) } ],
-      ${ writeTap(numTap + 1) }[ ${ _get("max_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
-      ${ writeTap(numTap + 1) }[ ${ _get("min_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
-      ${ writeTap(numTap + 1) }[ ${ _get("kyc").join(`\n${ writeTap(numTap + 2) }`) } ],
-      ${ writeTap(numTap) });`;
+${ writeTap(numTap) }super.initPeriods(
+${ writeTap(numTap + 1) }[ ${ periodConvertor("start_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ periodConvertor("end_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ periodConvertor("cap_ratio").join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ periodConvertor("max_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ periodConvertor("min_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ periodConvertor("kyc").join(`\n${ writeTap(numTap + 2) }`) } ]
+${ writeTap(numTap) });
+`;
+    }
+
+    // Locker.lock()
+    for (const { address, is_straight, release } of input.locker.beneficiaries) {
+      const releaseConvertor = arrayConvertor(release);
+
+      initBody += `
+${ writeTap(numTap) }locker.lock(
+${ writeTap(numTap + 1) }"${ address }",
+${ writeTap(numTap + 1) }${ is_straight },
+${ writeTap(numTap + 1) }[ ${ releaseConvertor("release_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ releaseConvertor("release_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]
+${ writeTap(numTap) });
+`;
     }
 
     // constructor for The Crowdsale

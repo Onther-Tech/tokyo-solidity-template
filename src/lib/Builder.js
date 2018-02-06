@@ -1,5 +1,3 @@
-import { resolve } from "path";
-
 import memFs from "mem-fs";
 import editor from "mem-fs-editor";
 
@@ -13,7 +11,6 @@ import Parser from "./Parser";
 export default class Builder {
   constructor(input) {
     this.input = input;
-    console.log(JSON.stringify(input, null, 2));
     this.parser = new Parser(input);
 
     this.store = memFs.create();

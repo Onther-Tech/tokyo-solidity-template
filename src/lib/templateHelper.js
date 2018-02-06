@@ -70,7 +70,7 @@ export function writeSuperModifiers(parentsList, constructors) {
 }
 
 /**
- *
+ * @notice write Locker's constructor arguments in migration file
  */
 export function writeLockerArguments(input, numTap = 3) {
   const ret = [];
@@ -101,7 +101,7 @@ export function writeLockerArguments(input, numTap = 3) {
 }
 
 /**
- *
+ * @notice write Crowdsale's constructor arguments in migration file
  */
 export function writeConstructorArguments(parseResult, numTap = 3) {
   const {
@@ -110,8 +110,6 @@ export function writeConstructorArguments(parseResult, numTap = 3) {
   } = parseResult;
 
   const ret = [];
-
-  const i = 0;
 
   parentsList.forEach((parentName) => {
     const args = constructors[ parentName ];
@@ -128,6 +126,9 @@ export function wrapNewBigNumber(value) {
   return `new BigNumber("${ new BigNumber(value).toFixed(0) }")`;
 }
 
+/**
+ * @notice convert argument info to javascript statement
+ */
 export function convertArgument(type, path, value = null) {
   if (!value) return `get(data, "${ path }")`;
   if (type === "address") return convertAddress(value);

@@ -1,14 +1,11 @@
 const moment = require("moment");
-const get = require('lodash/get');
+const get = require("lodash/get");
 
 const BigNumber = web3.BigNumber;
 
-const dateToNumber = (str) => moment(str).unix();
-
 /**
- *
+ * Contract Artifacts
  */
-
 const Token = artifacts.require("./Token.sol");
 const KYC = artifacts.require("./KYC.sol");
 const Crowdsale = artifacts.require("./Crowdsale.sol");
@@ -30,8 +27,7 @@ module.exports = async function (deployer, network, accounts) {
    *  2. Token
    *  3. Crowdsale
    *  4. Initialize contracts
-   *   - Locker.lock()
-   *   - transfer ownerships of vault, token to crowdsale
+   *   - transfer ownerships of vault, token, lcoker to crowdsale
    *   - Crowdsale.init()
    */
 
@@ -65,10 +61,24 @@ module.exports = async function (deployer, network, accounts) {
   ]])).then(async () => {
     crowdsale = await Crowdsale.deployed();
   }).then(async () => {
+    // transfer ownerships to crowdsale
+    await Promise.all(
+      vault.transferOwnership(crowdsale.address),
+      locker.transferOwnership(crowdsale.address),
+      <%- writeTransferTokenOwnership() -%>,
+    )
 
+    await crowdsale.init();
   })
 };
 
 function getInput() {
   return JSON.parse("<%- helper.serialize(input) -%>");
 }
+
+<%
+  function writeTransferTokenOwnership() {
+    if (input.token.token_type.is_minime) return 'token.changeController(crowdsale.address)';
+    return 'token.transferOwnership(crowdsale.address)';
+  }
+%>

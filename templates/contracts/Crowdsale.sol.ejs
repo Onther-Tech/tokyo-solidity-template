@@ -9,6 +9,8 @@
 contract Crowdsale is <%- parentsList.join(", ") %> {
   bool public initialized;
 
+<%- parseResult.variableDeclares %>
+
 <% writeConstructor() -%>
 
   function parseBool(bytes32 b) internal pure returns (bool) {

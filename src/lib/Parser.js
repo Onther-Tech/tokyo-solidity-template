@@ -43,7 +43,12 @@ export default class Parser {
     const crowdsale = f(); // for crowdsale contract
     const migration = {}; // for truffle migration script
     const constructors = {}; // for constructors for Crowdsale, Locker
+
+    let variableDeclares = ""; // storage variables for BaseCrowdsale.init
+    const declareTabs = 1; // tab level for declaration
+
     let initBody = ""; // BaseCrowdsale.init function body
+    const funTabs = 2; // tab level for function body
 
     // BaseCrowdsale
     crowdsale.parentsList.push("BaseCrowdsale");
@@ -51,15 +56,19 @@ export default class Parser {
     constructors.BaseCrowdsale = defaultConstructors(input);
 
     // HolderBase.initHolders
-    const numTap = 2;
     const etherHolders = input.sale.distribution.ether.map(e => e.ether_holder);
     const etherRatios = input.sale.distribution.ether.map(e => e.ether_ratio);
 
+    variableDeclares += `
+${ writeTap(declareTabs) }address[] public holderAddresses = [ ${ etherHolders.join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint96[] public holderRatios = [ ${ etherRatios.join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+    `;
+
     initBody += `
-${ writeTap(numTap) }vault.initHolders(
-${ writeTap(numTap + 1) }[ ${ etherHolders.join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ etherRatios.join(`\n${ writeTap(numTap + 2) }`) } ]
-${ writeTap(numTap) });
+${ writeTap(funTabs) }vault.initHolders(
+${ writeTap(funTabs + 1) }holderAddresses,
+${ writeTap(funTabs + 1) }holderRatios
+${ writeTap(funTabs) });
 `;
 
     // parse input.locker
@@ -106,18 +115,28 @@ ${ writeTap(numTap) });
       const timeConvertor = arrayConvertor(input.sale.rate.bonus.time_bonuses);
       const amountConvertor = arrayConvertor(input.sale.rate.bonus.amount_bonuses);
 
+      variableDeclares += `
+${ writeTap(declareTabs) }uint32[] public timeBonusTimes = [ ${ timeConvertor("bonus_time_stage", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint32[] public timeBonusValues = [ ${ timeConvertor("bonus_time_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+      `;
+
       initBody += `
-${ writeTap(numTap) }super.setBonusesForTimes(
-${ writeTap(numTap + 1) }[ ${ timeConvertor("bonus_time_stage", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ timeConvertor("bonus_time_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]
-${ writeTap(numTap) });
+${ writeTap(funTabs) }super.setBonusesForTimes(
+${ writeTap(funTabs + 1) }timeBonusTimes,
+${ writeTap(funTabs + 1) }timeBonusValues
+${ writeTap(funTabs) });
+`;
+
+      variableDeclares += `
+${ writeTap(declareTabs) }uint32[] public amountBonusAmounts = [ ${ amountConvertor("bonus_amount_stage").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint32[] public amountBonusValues = [ ${ amountConvertor("bonus_amount_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
 `;
 
       initBody += `
-${ writeTap(numTap) }super.setBonusesForAmounts(
-${ writeTap(numTap + 1) }[ ${ amountConvertor("bonus_amount_stage").join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ amountConvertor("bonus_amount_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]
-${ writeTap(numTap) });
+${ writeTap(funTabs) }super.setBonusesForAmounts(
+${ writeTap(funTabs + 1) }amountBonusAmounts,
+${ writeTap(funTabs + 1) }amountBonusValues
+${ writeTap(funTabs) });
 `;
     }
 
@@ -154,29 +173,46 @@ ${ writeTap(numTap) });
       // StagedCrowdsale.initPeriods
       const periodConvertor = arrayConvertor(input.sale.stages);
 
+      variableDeclares += `
+${ writeTap(declareTabs) }uint32[] public periodStartTimes = [ ${ periodConvertor("start_time", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint32[] public periodEndTimes = [ ${ periodConvertor("end_time", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint128[] public periodCapRatios = [ ${ periodConvertor("cap_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint128[] public periodMaxPurchaseLimits = [ ${ periodConvertor("max_purchase_limit").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint128[] public periodMinPurchaseLimits = [ ${ periodConvertor("min_purchase_limit").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }bool[] public periodKycs = [ ${ periodConvertor("kyc").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+`;
+
       initBody += `
-${ writeTap(numTap) }super.initPeriods(
-${ writeTap(numTap + 1) }[ ${ periodConvertor("start_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ periodConvertor("end_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ periodConvertor("cap_ratio").join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ periodConvertor("max_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ periodConvertor("min_purchase_limit").join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ periodConvertor("kyc").join(`\n${ writeTap(numTap + 2) }`) } ]
-${ writeTap(numTap) });
+${ writeTap(funTabs) }super.initPeriods(
+${ writeTap(funTabs + 1) }periodStartTimes,
+${ writeTap(funTabs + 1) }periodEndTimes,
+${ writeTap(funTabs + 1) }periodCapRatios,
+${ writeTap(funTabs + 1) }periodMaxPurchaseLimits,
+${ writeTap(funTabs + 1) }periodMinPurchaseLimits,
+${ writeTap(funTabs + 1) }periodKycs
+${ writeTap(funTabs) });
 `;
     }
 
     // Locker.lock()
+    let i = 0;
     for (const { address, is_straight, release } of input.locker.beneficiaries) {
+      i += 1;
+
       const releaseConvertor = arrayConvertor(release);
 
+      variableDeclares += `
+${ writeTap(declareTabs) }uint[] public release${ i }Times = [ ${ releaseConvertor("release_time", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint[] public release${ i }Ratios = [ ${ releaseConvertor("release_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+`;
+
       initBody += `
-${ writeTap(numTap) }locker.lock(
-${ writeTap(numTap + 1) }${ address },
-${ writeTap(numTap + 1) }${ is_straight },
-${ writeTap(numTap + 1) }[ ${ releaseConvertor("release_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
-${ writeTap(numTap + 1) }[ ${ releaseConvertor("release_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]
-${ writeTap(numTap) });
+${ writeTap(funTabs) }locker.lock(
+${ writeTap(funTabs + 1) }${ address },
+${ writeTap(funTabs + 1) }${ is_straight },
+${ writeTap(funTabs + 1) }release${ i }Times,
+${ writeTap(funTabs + 1) }release${ i }Ratios
+${ writeTap(funTabs) });
 `;
     }
 
@@ -192,6 +228,7 @@ ${ writeTap(numTap) });
       migration,
       constructors,
       initBody,
+      variableDeclares,
     };
   }
 

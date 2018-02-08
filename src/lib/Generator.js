@@ -10,6 +10,7 @@ const logger = new Logger(true);
 const defaultTargetDirectoryName = "out";
 const defaultTargetPath = resolve(__dirname, "../../");
 const defaultTemplPath = resolve(__dirname, "../../templates");
+const defaultStaticPath = resolve(__dirname, "../../static");
 const defaultBaseContractPath = resolve(__dirname, "../../tokyo-reusable-crowdsale/contracts");
 const defaultBaseTestHelperPath = resolve(__dirname, "../../tokyo-reusable-crowdsale/test/helpers");
 
@@ -22,6 +23,7 @@ export default class Generator extends Builder {
     input,
     targetDirectoryName = defaultTargetDirectoryName,
     tmplPath = defaultTemplPath,
+    staticPath = defaultStaticPath,
     baseContractPath = defaultBaseContractPath,
     baseTestHelperPath = defaultBaseTestHelperPath,
   ) {
@@ -30,16 +32,17 @@ export default class Generator extends Builder {
     const targetPath = resolve(defaultTargetPath, targetDirectoryName); // ../../out
 
     this.path = {
-      tmpl: tmplPath,
+      tmpl: tmplPath, // `/templates`
+      static: staticPath, // `/static`
       target: {
-        root: targetPath,
-        contracts: resolve(targetPath, "./contracts"),
-        migrations: resolve(targetPath, "./migrations"),
-        test: resolve(targetPath, "./test"),
+        root: targetPath, // `/out`
+        contracts: resolve(targetPath, "./contracts"), // `/out/contracts`
+        migrations: resolve(targetPath, "./migrations"), // `/out/migrations`
+        test: resolve(targetPath, "./test"), // `/out/test`
       },
       base: {
-        contracts: baseContractPath,
-        test: baseTestHelperPath,
+        contracts: baseContractPath, // `/tokyo-reusable-crowdsale/contracts`
+        test: baseTestHelperPath, // `/tokyo-reusable-crowdsale/test`
       },
     };
   }
@@ -90,5 +93,9 @@ export default class Generator extends Builder {
 
   tmplPath(...args) {
     return join(this.path.tmpl, ...args);
+  }
+
+  staticPath(...args) {
+    return join(this.path.static, ...args);
   }
 }

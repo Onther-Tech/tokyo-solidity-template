@@ -41,8 +41,7 @@
     "mkdirp": "^0.5.1",
     "moment": "^2.20.1",
     "ncp": "^2.0.0",
-    "serialize-javascript": "^1.4.0",
-    "tokyo-schema": "^0.1.2"
+    "serialize-javascript": "^1.4.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

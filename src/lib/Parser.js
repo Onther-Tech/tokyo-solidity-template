@@ -16,7 +16,6 @@ const defaultConstructors = input => [
   ["address", "address.vault"],
   ["address", "address.locker"],
   ["address", "input.sale.new_token_owner", input.sale.new_token_owner],
-  ["address", "address.token"],
 ];
 
 const arrayConvertor = array => (key, convertor) =>
@@ -46,10 +45,10 @@ export default class Parser {
     const constructors = {}; // for constructors for Crowdsale, Locker
     let initBody = ""; // BaseCrowdsale.init function body
 
-    // Ownable for Crowdsale
-    crowdsale.parentsList.push("Ownable");
-    crowdsale.importStatements.push("import \"./base/zeppelin/ownership/Ownable.sol\";");
-    constructors.Ownable = [];
+    // BaseCrowdsale
+    crowdsale.parentsList.push("BaseCrowdsale");
+    crowdsale.importStatements.push("import \"./base/crowdsale/BaseCrowdsale.sol\";");
+    constructors.BaseCrowdsale = defaultConstructors(input);
 
     // HolderBase.initHolders
     const numTap = 2;
@@ -58,7 +57,7 @@ export default class Parser {
 
     initBody += `
 ${ writeTap(numTap) }vault.initHolders(
-${ writeTap(numTap + 1) }[ ${ etherHolders.map(i => `"${ i }"`).join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ etherHolders.join(`\n${ writeTap(numTap + 2) }`) } ],
 ${ writeTap(numTap + 1) }[ ${ etherRatios.join(`\n${ writeTap(numTap + 2) }`) } ]
 ${ writeTap(numTap) });
 `;
@@ -74,7 +73,7 @@ ${ writeTap(numTap) });
       crowdsale.parentsList.push("MiniMeBaseCrowdsale");
       crowdsale.importStatements.push("import \"./base/crowdsale/MiniMeBaseCrowdsale.sol\";");
 
-      constructors.MiniMeBaseCrowdsale = defaultConstructors(input);
+      constructors.MiniMeBaseCrowdsale = [["address", "address.token"]];
     } else {
       token.parentsList.push("Mintable");
       token.importStatements.push("import \"./base/zeppelin/token/Mintable.sol\";");
@@ -82,7 +81,7 @@ ${ writeTap(numTap) });
       crowdsale.parentsList.push("ZeppelinBaseCrowdsale");
       crowdsale.importStatements.push("import \"./base/crowdsale/ZeppelinBaseCrowdsale.sol\";");
 
-      constructors.ZeppelinBaseCrowdsale = defaultConstructors(input);
+      constructors.ZeppelinBaseCrowdsale = [["address", "address.token"]];
 
       if (input.token.token_option && input.token.token_option.burnable) {
         token.parentsList.push("BurnableToken");
@@ -103,6 +102,23 @@ ${ writeTap(numTap) });
       crowdsale.importStatements.push("import \"./base/crowdsale/BonusCrowdsale.sol\";");
 
       constructors.BonusCrowdsale = [];
+
+      const timeConvertor = arrayConvertor(input.sale.rate.bonus.time_bonuses);
+      const amountConvertor = arrayConvertor(input.sale.rate.bonus.amount_bonuses);
+
+      initBody += `
+${ writeTap(numTap) }super.setBonusesForTimes(
+${ writeTap(numTap + 1) }[ ${ timeConvertor("bonus_time_stage", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ timeConvertor("bonus_time_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]
+${ writeTap(numTap) });
+`;
+
+      initBody += `
+${ writeTap(numTap) }super.setBonusesForAmounts(
+${ writeTap(numTap + 1) }[ ${ amountConvertor("bonus_amount_stage").join(`\n${ writeTap(numTap + 2) }`) } ],
+${ writeTap(numTap + 1) }[ ${ amountConvertor("bonus_amount_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]
+${ writeTap(numTap) });
+`;
     }
 
     // 2. PurchaseLimitedCrowdsale
@@ -156,7 +172,7 @@ ${ writeTap(numTap) });
 
       initBody += `
 ${ writeTap(numTap) }locker.lock(
-${ writeTap(numTap + 1) }"${ address }",
+${ writeTap(numTap + 1) }${ address },
 ${ writeTap(numTap + 1) }${ is_straight },
 ${ writeTap(numTap + 1) }[ ${ releaseConvertor("release_time", convertDateString).join(`\n${ writeTap(numTap + 2) }`) } ],
 ${ writeTap(numTap + 1) }[ ${ releaseConvertor("release_ratio").join(`\n${ writeTap(numTap + 2) }`) } ]

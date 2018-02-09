@@ -21,6 +21,8 @@ const defaultConstructors = input => [
 const arrayConvertor = array => (key, convertor) =>
   array.map(s => (convertor ? convertor(s[ key ]) : s[ key ]));
 
+const BNConvertor = bn => bn.toFixed(0);
+
 /**
  * @title Parser
  * @notice Parses user's input to generate inheritance tree for token and crowdsale.
@@ -128,7 +130,7 @@ ${ writeTap(funTabs) });
 `;
 
       variableDeclares += `
-${ writeTap(declareTabs) }uint32[] public amountBonusAmounts = [ ${ amountConvertor("bonus_amount_stage").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }uint128[] public amountBonusAmounts = [ ${ amountConvertor("bonus_amount_stage", BNConvertor).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
 ${ writeTap(declareTabs) }uint32[] public amountBonusValues = [ ${ amountConvertor("bonus_amount_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
 `;
 

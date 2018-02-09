@@ -1,6 +1,5 @@
 import memFs from "mem-fs";
 import editor from "mem-fs-editor";
-import fs from "fs";
 
 import * as templateHelper from "./templateHelper";
 import Parser from "./Parser";
@@ -25,7 +24,6 @@ export default class Builder {
     const parseResult = this.parser.parse();
 
     return new Promise((done) => {
-      this.copyStatic();
       this.writeContracts(parseResult);
       this.writeMigrations(parseResult);
       this.writeTest(parseResult);
@@ -36,17 +34,6 @@ export default class Builder {
 
   getDataObj(parseResult) {
     return { input: this.input, helper: templateHelper, parseResult };
-  }
-
-  copyStatic() {
-    const staticFiles = fs.readdirSync(this.staticPath());
-
-    staticFiles.forEach((file) => {
-      this.fs.copy(
-        this.staticPath(file),
-        this.targetPath(file),
-      );
-    });
   }
 
   writeContracts(parseResult) {

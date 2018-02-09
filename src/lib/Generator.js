@@ -1,3 +1,4 @@
+import fs from "fs";
 import { resolve, join } from "path";
 import mkdirp from "mkdirp";
 import { ncp } from "ncp";
@@ -51,6 +52,7 @@ export default class Generator extends Builder {
     logger.log("generator writting...");
 
     this._makeDirectories();
+    await this._copyStatic();
     await this._copyBaseContracts();
     await this._copyBaseTestHelpers();
 
@@ -58,18 +60,30 @@ export default class Generator extends Builder {
   }
 
   _makeDirectories() {
-    logger.log("write directories...");
+    logger.log("making directories...");
 
     mkdirp(this.path.target.contracts);
     mkdirp(this.path.target.migrations);
     mkdirp(this.path.target.test);
   }
 
+  _copyStatic() {
+    logger.log("copying truffle static files...");
+    const staticFiles = fs.readdirSync(this.staticPath());
+
+    staticFiles.forEach((file) => {
+      this.fs.copy(
+        this.staticPath(file),
+        this.targetPath(file),
+      );
+    });
+  }
+
   _copyBaseContracts() {
     const sourcePath = this.path.base.contracts;
     const targetPath = resolve(this.path.target.contracts, "./base");
 
-    logger.log("copy base contracts...");
+    logger.log("copying base contracts...");
     logger.log("from", sourcePath);
     logger.log("to", targetPath);
 
@@ -80,7 +94,7 @@ export default class Generator extends Builder {
     const sourcePath = this.path.base.test;
     const targetPath = resolve(this.path.target.test, "./helpers");
 
-    logger.log("copy test helpers...");
+    logger.log("copying test helpers...");
     logger.log("from", sourcePath);
     logger.log("to", targetPath);
 

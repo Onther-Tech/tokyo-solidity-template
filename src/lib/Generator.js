@@ -54,7 +54,6 @@ export default class Generator extends Builder {
     this._makeDirectories();
     await this._copyStatic();
     await this._copyBaseContracts();
-    await this._copyBaseTestHelpers();
 
     await super.build(this.path); // Copy templates with user input
   }
@@ -84,17 +83,6 @@ export default class Generator extends Builder {
     const targetPath = resolve(this.path.target.contracts, "./base");
 
     logger.log("copying base contracts...");
-    logger.log("from", sourcePath);
-    logger.log("to", targetPath);
-
-    return ncp(sourcePath, targetPath);
-  }
-
-  _copyBaseTestHelpers() {
-    const sourcePath = this.path.base.test;
-    const targetPath = resolve(this.path.target.test, "./helpers");
-
-    logger.log("copying test helpers...");
     logger.log("from", sourcePath);
     logger.log("to", targetPath);
 

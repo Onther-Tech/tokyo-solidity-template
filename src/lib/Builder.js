@@ -42,14 +42,14 @@ export default class Builder {
     // crowdsale
     this.fs.copyTpl(
       this.tmplPath(dirName, "Crowdsale.sol.ejs"),
-      this.targetPath(dirName, "Crowdsale.sol"),
+      this.targetPath(dirName, `${ templateHelper.getCrowdsaleName(parseResult) }.sol`),
       this.getDataObj(parseResult),
     );
 
     // token
     this.fs.copyTpl(
       this.tmplPath(dirName, "Token.sol.ejs"),
-      this.targetPath(dirName, "Token.sol"),
+      this.targetPath(dirName, `${ templateHelper.getTokenName(parseResult) }.sol`),
       this.getDataObj(parseResult),
     );
   }

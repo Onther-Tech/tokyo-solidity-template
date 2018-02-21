@@ -1,18 +1,21 @@
 const moment = require("moment");
 const get = require("lodash/get");
+const ethUtils = require("ethereumjs-util");
 
 const BigNumber = web3.BigNumber;
+const { toBuffer, setLengthLeft, addHexPrefix } = ethUtils;
 
 /**
  * Contract Artifacts
  */
-const Token = artifacts.require("./Token.sol");
 const KYC = artifacts.require("./KYC.sol");
-const Crowdsale = artifacts.require("./Crowdsale.sol");
 const Vault = artifacts.require("./MultiHolderVault.sol");
 const Locker = artifacts.require("./Locker.sol");
+const Token = artifacts.require("./<%- helper.getTokenName(parseResult) -%>.sol");
+const Crowdsale = artifacts.require("./<%- helper.getCrowdsaleName(parseResult) -%>.sol");
 
 module.exports = async function (deployer, network, accounts) {
+  console.log(accounts)
   const address = {};
   const input = getInput();
 
@@ -33,7 +36,11 @@ module.exports = async function (deployer, network, accounts) {
 
   deployer.deploy([
     KYC,
-    Vault,
+    [
+      Vault,
+      "<%- input.sale.new_token_owner -%>",
+      <%- input.sale.coeff %>
+    ],
     [
       Locker,
       <%- helper.writeLockerArguments(input, 3) %>
@@ -47,34 +54,57 @@ module.exports = async function (deployer, network, accounts) {
     address.vault = vault.address;
     address.locker = locker.address;
   }).then(() => deployer.deploy([
-    Token
+    [
+      Token,
+      // token arguments...
+      <%- helper.writeTokenArguments(input, 3) %>
+    ]
   ])).then(async () => {
     token = await Token.deployed();
 
     address.token = token.address;
+
+    console.log(data);
+
   }).then(() => deployer.deploy([[
     Crowdsale,
-    // constructor arguments...
     [
-      <%- helper.writeConstructorArguments(parseResult) %>
-    ],
+      <%- helper.writeConstructorArguments(parseResult, 3) %>
+    ].map(toLeftPaddedBuffer)
   ]])).then(async () => {
     crowdsale = await Crowdsale.deployed();
+
+    address.crowdsale = crowdsale.address;
+  }).then(async () => {
+    <%- parseResult.variableDeclares -%>
+    <%- parseResult.initBody -%>
   }).then(async () => {
     // transfer ownerships to crowdsale
-    await Promise.all(
+    await Promise.all([
       vault.transferOwnership(crowdsale.address),
       locker.transferOwnership(crowdsale.address),
       <%- writeTransferTokenOwnership() -%>,
-    )
+    ])
 
-    await crowdsale.init();
-  })
+  });
 };
 
 function getInput() {
-  return JSON.parse("<%- helper.serialize(input) -%>");
+  return JSON.parse('<%- helper.serialize(input) -%>');
 }
+
+function toLeftPaddedBuffer(v) {
+  if (typeof v === "boolean") {
+    v = Number(v);
+  } else if (v instanceof BigNumber) {
+    v = addHexPrefix(v.toString(16));
+  }
+
+  const buf = toBuffer(v);
+  const hex = setLengthLeft(buf, 32).toString("hex");
+  return addHexPrefix(hex);
+}
+
 
 <%
   function writeTransferTokenOwnership() {

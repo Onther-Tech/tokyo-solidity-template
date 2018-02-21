@@ -5,7 +5,7 @@
 <%- include("partials/version.ejs") -%>
 <%- writeImportStatements() -%>
 
-contract Token is <%- parentsList.join(", ") %> { <%
+contract <%- helper.getTokenName(parseResult) -%> is <%- parentsList.join(", ") %> { <%
     if (input.token.token_type.is_minime) {
       writeMiniMeTokenBody();
     } else {
@@ -32,7 +32,7 @@ contract Token is <%- parentsList.join(", ") %> { <%
 
 <%
   function writeMiniMeTokenBody() { %>
-    function Token(address _tokenFactory)
+    function <%- helper.getTokenName(parseResult) -%>(address _tokenFactory)
       MiniMeToken(
         _tokenFactory,
         0x0,                     // no parent token

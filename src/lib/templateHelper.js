@@ -2,7 +2,7 @@ import BigNumber from "bignumber.js";
 import moment from "moment";
 
 export function serialize(json) {
-  return JSON.stringify(json).replace(/"/g, "'");
+  return JSON.stringify(json);
 }
 
 export function writeTap(numTap) {
@@ -102,7 +102,7 @@ export function writeLockerArguments(input, numTap = 3) {
 /**
  * @notice write Crowdsale's constructor arguments in migration file
  */
-export function writeConstructorArguments(parseResult, numTap = 3) {
+export function writeConstructorArguments(parseResult, numTap = 2) {
   const {
     constructors,
     crowdsale: { parentsList },
@@ -119,6 +119,30 @@ export function writeConstructorArguments(parseResult, numTap = 3) {
   });
 
   return `${ ret.join(`\n${ writeTap(numTap) }`) }`;
+}
+
+/**
+ * @notice write Token's constructor arguments in migration file
+ */
+export function writeTokenArguments(input, numTap = 2) {
+  const {
+    token: {
+      token_type: { is_minime },
+      token_name,
+      token_symbol,
+      decimals,
+    },
+  } = input;
+
+  if (!is_minime) {
+    return []; // no arguments for Zeppelin's Mintable token
+  }
+
+  const ret = [
+    "\"0x00\"", // token factory
+  ];
+
+  return `${ ret.join(`,\n${ writeTap(numTap) }`) }`;
 }
 
 export function wrapNewBigNumber(value) {
@@ -144,5 +168,17 @@ export function convertAddress(s) {
 }
 
 export function convertBigNumber(b) {
-  return b.toNumber();
+  return b.toFixed(0);
+}
+
+export function convertString(str, quote = "\"") {
+  return `${ quote }${ str }${ quote }`;
+}
+
+export function getTokenName(parseResult) {
+  return `${ parseResult.meta.projectName }Token`;
+}
+
+export function getCrowdsaleName(parseResult) {
+  return `${ parseResult.meta.projectName }Crowdsale`;
 }

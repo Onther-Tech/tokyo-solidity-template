@@ -2,6 +2,7 @@ import moment from "moment";
 import {
   writeTap,
   convertDateString,
+  convertAddress,
 } from "./templateHelper";
 
 // common constructor parameters for ZeppelinBaseCrowdsale & MiniMeBaseCrowdsale
@@ -41,16 +42,21 @@ export default class Parser {
       importStatements: [], // path to import suprt contract
     });
 
+    const meta = {};
     const token = f(); // for token contract
     const crowdsale = f(); // for crowdsale contract
     const migration = {}; // for truffle migration script
     const constructors = {}; // for constructors for Crowdsale, Locker
 
-    let variableDeclares = ""; // storage variables for BaseCrowdsale.init
-    const declareTabs = 1; // tab level for declaration
+    let crowdsaleConstructorArgumentLength = 0;
 
-    let initBody = ""; // BaseCrowdsale.init function body
+    let variableDeclares = ""; // JS variable declarations
+    const declareTabs = 2; // tab level for declaration
+
+    let initBody = ""; // send TXs to initialize contracts
     const funTabs = 2; // tab level for function body
+
+    meta.projectName = input.project_name.replace(/\W/g, "");
 
     // BaseCrowdsale
     crowdsale.parentsList.push("BaseCrowdsale");
@@ -58,23 +64,17 @@ export default class Parser {
     constructors.BaseCrowdsale = defaultConstructors(input);
 
     // HolderBase.initHolders
-    const etherHolders = input.sale.distribution.ether.map(e => e.ether_holder);
-    const etherRatios = input.sale.distribution.ether.map(e => e.ether_ratio);
-
     variableDeclares += `
-${ writeTap(declareTabs) }address[] public holderAddresses = [ ${ etherHolders.join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint96[] public holderRatios = [ ${ etherRatios.join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }const holderAddresses = get(data, "input.sale.distribution.ether").map(e => e.ether_holder);
+${ writeTap(declareTabs) }const holderRatios = get(data, "input.sale.distribution.ether").map(e => e.ether_ratio);
     `;
 
     initBody += `
-${ writeTap(funTabs) }vault.initHolders(
+${ writeTap(funTabs) }await vault.initHolders(
 ${ writeTap(funTabs + 1) }holderAddresses,
 ${ writeTap(funTabs + 1) }holderRatios
 ${ writeTap(funTabs) });
 `;
-
-    // parse input.locker
-    migration.Lockers = this.parseLockers();
 
     // parse input.token
     if (input.token.token_type.is_minime) {
@@ -118,26 +118,26 @@ ${ writeTap(funTabs) });
       const amountConvertor = arrayConvertor(input.sale.rate.bonus.amount_bonuses);
 
       variableDeclares += `
-${ writeTap(declareTabs) }uint32[] public timeBonusTimes = [ ${ timeConvertor("bonus_time_stage", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint32[] public timeBonusValues = [ ${ timeConvertor("bonus_time_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }const bonusTimes = [ ${ timeConvertor("bonus_time_stage", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const bonusTimeValues = [ ${ timeConvertor("bonus_time_ratio").join(", ") } ];
       `;
 
       initBody += `
-${ writeTap(funTabs) }super.setBonusesForTimes(
-${ writeTap(funTabs + 1) }timeBonusTimes,
-${ writeTap(funTabs + 1) }timeBonusValues
+${ writeTap(funTabs) }await crowdsale.setBonusesForTimes(
+${ writeTap(funTabs + 1) }bonusTimes,
+${ writeTap(funTabs + 1) }bonusTimeValues
 ${ writeTap(funTabs) });
 `;
 
       variableDeclares += `
-${ writeTap(declareTabs) }uint128[] public amountBonusAmounts = [ ${ amountConvertor("bonus_amount_stage", BNConvertor).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint32[] public amountBonusValues = [ ${ amountConvertor("bonus_amount_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }const bonusAmounts = [ ${ amountConvertor("bonus_amount_stage", BNConvertor).join(", ") } ];
+${ writeTap(declareTabs) }const bonusAmountValues = [ ${ amountConvertor("bonus_amount_ratio").join(", ") } ];
 `;
 
       initBody += `
-${ writeTap(funTabs) }super.setBonusesForAmounts(
-${ writeTap(funTabs + 1) }amountBonusAmounts,
-${ writeTap(funTabs + 1) }amountBonusValues
+${ writeTap(funTabs) }await crowdsale.setBonusesForAmounts(
+${ writeTap(funTabs + 1) }bonusAmounts,
+${ writeTap(funTabs + 1) }bonusAmountValues
 ${ writeTap(funTabs) });
 `;
     }
@@ -176,16 +176,16 @@ ${ writeTap(funTabs) });
       const periodConvertor = arrayConvertor(input.sale.stages);
 
       variableDeclares += `
-${ writeTap(declareTabs) }uint32[] public periodStartTimes = [ ${ periodConvertor("start_time", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint32[] public periodEndTimes = [ ${ periodConvertor("end_time", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint128[] public periodCapRatios = [ ${ periodConvertor("cap_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint128[] public periodMaxPurchaseLimits = [ ${ periodConvertor("max_purchase_limit").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint128[] public periodMinPurchaseLimits = [ ${ periodConvertor("min_purchase_limit").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }bool[] public periodKycs = [ ${ periodConvertor("kyc").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }const periodStartTimes = [ ${ periodConvertor("start_time", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const periodEndTimes = [ ${ periodConvertor("end_time", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const periodCapRatios = [ ${ periodConvertor("cap_ratio").join(", ") } ];
+${ writeTap(declareTabs) }const periodMaxPurchaseLimits = [ ${ periodConvertor("max_purchase_limit").join(", ") } ];
+${ writeTap(declareTabs) }const periodMinPurchaseLimits = [ ${ periodConvertor("min_purchase_limit").join(", ") } ];
+${ writeTap(declareTabs) }const periodKycs = [ ${ periodConvertor("kyc").join(", ") } ];
 `;
 
       initBody += `
-${ writeTap(funTabs) }super.initPeriods(
+${ writeTap(funTabs) }await crowdsale.initPeriods(
 ${ writeTap(funTabs + 1) }periodStartTimes,
 ${ writeTap(funTabs + 1) }periodEndTimes,
 ${ writeTap(funTabs + 1) }periodCapRatios,
@@ -204,13 +204,13 @@ ${ writeTap(funTabs) });
       const releaseConvertor = arrayConvertor(release);
 
       variableDeclares += `
-${ writeTap(declareTabs) }uint[] public release${ i }Times = [ ${ releaseConvertor("release_time", convertDateString).join(`,\n${ writeTap(declareTabs + 1) }`) } ];
-${ writeTap(declareTabs) }uint[] public release${ i }Ratios = [ ${ releaseConvertor("release_ratio").join(`,\n${ writeTap(declareTabs + 1) }`) } ];
+${ writeTap(declareTabs) }const release${ i }Times = [ ${ releaseConvertor("release_time", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const release${ i }Ratios = [ ${ releaseConvertor("release_ratio").join(", ") } ];
 `;
 
       initBody += `
-${ writeTap(funTabs) }locker.lock(
-${ writeTap(funTabs + 1) }${ address },
+${ writeTap(funTabs) }await locker.lock(
+${ writeTap(funTabs + 1) }${ convertAddress(address) },
 ${ writeTap(funTabs + 1) }${ is_straight },
 ${ writeTap(funTabs + 1) }release${ i }Times,
 ${ writeTap(funTabs + 1) }release${ i }Ratios
@@ -221,33 +221,20 @@ ${ writeTap(funTabs) });
     // constructor for The Crowdsale
     constructors.Crowdsale = [];
     crowdsale.parentsList.forEach((parent) => {
+      crowdsaleConstructorArgumentLength += constructors[ parent ].length;
+
       constructors.Crowdsale = [...constructors.Crowdsale, ...constructors[ parent ]];
     });
 
     return {
+      meta,
       token,
       crowdsale,
       migration,
       constructors,
       initBody,
       variableDeclares,
+      crowdsaleConstructorArgumentLength,
     };
-  }
-
-  parseLockers() {
-    const { input } = this;
-    const ret = [];
-
-    if (!input.locker.use_locker) {
-      return ret;
-    }
-
-    input.locker.beneficiaries.forEach((b) => {
-      ret.push([
-        // TODO: fill locker constructor parameters
-      ]);
-    });
-
-    return ret;
   }
 }

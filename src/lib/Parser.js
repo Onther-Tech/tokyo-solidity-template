@@ -158,7 +158,15 @@ ${ writeTap(funTabs) });
       constructors.MinimumPaymentCrowdsale = [["uint", "input.sale.valid_purchase.min_purchase_limit", input.sale.valid_purchase.min_purchase_limit]];
     }
 
-    // 4. KYCCrowdsale & StagedCrowdsale
+    // 4. BlockIntervalCrowdsale
+    if (input.sale.valid_purchase.block_interval > 0) {
+      crowdsale.parentsList.push("BlockIntervalCrowdsale");
+      crowdsale.importStatements.push("import \"./base/crowdsale/BlockIntervalCrowdsale.sol\";");
+
+      constructors.BlockIntervalCrowdsale = [["uint", "input.sale.valid_purchase.block_interval", input.sale.valid_purchase.block_interval]];
+    }
+
+    // 5. KYCCrowdsale & StagedCrowdsale
     if (input.sale.stages.length > 0) {
       if (input.sale.stages.findIndex(s => s.kyc === true) >= 0) {
         crowdsale.parentsList.push("KYCCrowdsale");

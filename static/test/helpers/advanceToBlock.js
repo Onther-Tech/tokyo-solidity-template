@@ -1,3 +1,5 @@
+import range from "lodash/range";
+
 export function advanceBlock() {
   return new Promise((resolve, reject) => {
     web3.currentProvider.sendAsync({
@@ -8,9 +10,10 @@ export function advanceBlock() {
   });
 }
 
-export function advanceManyBlock(n) {
-  const targetBlockNumber = web3.eth.blockNumber + n;
-  return advanceToBlock(targetBlockNumber);
+export async function advanceManyBlock(n) {
+  for (const _ of range(n)) {
+    await advanceBlock();
+  }
 }
 
 // Advances the block number so that the last mined block is `number`.

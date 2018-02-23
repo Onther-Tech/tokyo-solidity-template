@@ -2,6 +2,7 @@ import fs from "fs";
 import { resolve, join } from "path";
 import mkdirp from "mkdirp";
 import { ncp } from "ncp";
+import schema from "tokyo-schema/src";
 
 import Logger from "./Logger";
 import Builder from "./Builder";
@@ -22,13 +23,18 @@ const defaultBaseTestHelperPath = resolve(__dirname, "../../submodules/tokyo-reu
  */
 export default class Generator extends Builder {
   constructor(
-    input,
+    inputJSON,
     targetDirectoryName = defaultTargetDirectoryName,
     tmplPath = defaultTemplPath,
     staticPath = defaultStaticPath,
     baseContractPath = defaultBaseContractPath,
     baseTestHelperPath = defaultBaseTestHelperPath,
   ) {
+    const { value, error } = schema.validate(inputJSON);
+    const input = value;
+
+    if (error) throw error;
+
     super(input);
 
     const targetPath = resolve(defaultTargetPath, targetDirectoryName); // ../../out

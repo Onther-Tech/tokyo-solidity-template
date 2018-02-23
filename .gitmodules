@@ -1,4 +1,4 @@
-[submodule "test/tokyo-test-data"]
+[submodule "tokyo-test-data"]
 	path = submodules/tokyo-test-data
 	url = https://github.com/Onther-Tech/tokyo-test-data.git
 [submodule "tokyo-reusable-crowdsale"]

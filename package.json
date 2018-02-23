@@ -44,7 +44,8 @@
     "serialize-javascript": "^1.4.0",
     "tokyo-reusable-crowdsale": "file:submodules/tokyo-reuesable-crowdsale",
     "tokyo-schema": "file:submodules/tokyo-schema",
-    "tokyo-test-data": "file:submodules/tokyo-test-data"
+    "tokyo-test-data": "file:submodules/tokyo-test-data",
+    "truffle-hdwallet-provider": "https://github.com/cemozerr/truffle-hdwallet-provider/tarball/master"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

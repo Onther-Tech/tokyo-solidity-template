@@ -82,6 +82,8 @@ export function writeLockerArguments(input, numTap = 3) {
     locker: { beneficiaries },
   } = input;
 
+  ret.push("get(data, \"address.token\")");
+
   ret.push(wrapNewBigNumber(convertBigNumber(coeff)));
 
   beneficiaries.forEach(({ address }) => {
@@ -160,7 +162,7 @@ export function convertArgument(type, path, value = null) {
 }
 
 export function convertDateString(v) {
-  return moment(v).unix();
+  return moment.utc(v).unix();
 }
 
 export function convertAddress(s) {

@@ -26,7 +26,7 @@ export default class Builder {
     return new Promise((done) => {
       this.writeContracts(parseResult);
       this.writeMigrations(parseResult);
-      this.writeTest(parseResult);
+      // this.writeTest(parseResult);
 
       this.fs.commit([], done);
     });

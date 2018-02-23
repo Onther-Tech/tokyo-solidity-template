@@ -13,9 +13,8 @@ const defaultTargetDirectoryName = "out";
 const defaultTargetPath = resolve(__dirname, "../../");
 const defaultTemplPath = resolve(__dirname, "../../templates");
 const defaultStaticPath = resolve(__dirname, "../../static");
-// TODO: use tokyo-reusable-crowdsale node package
-const defaultBaseContractPath = resolve(__dirname, "../../submodules/tokyo-reusable-crowdsale/contracts");
-const defaultBaseTestHelperPath = resolve(__dirname, "../../submodules/tokyo-reusable-crowdsale/test/helpers");
+const defaultBaseContractPath = resolve(__dirname, "../../node_modules/tokyo-reusable-crowdsale/contracts");
+const defaultBaseTestHelperPath = resolve(__dirname, "../../node_modules/tokyo-reusable-crowdsale/test/helpers");
 
 /**
  * @title Generator

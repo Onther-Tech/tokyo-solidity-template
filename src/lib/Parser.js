@@ -1,7 +1,6 @@
 import moment from "moment";
 import {
   writeTap,
-  convertDateString,
   convertAddress,
 } from "./templateHelper";
 
@@ -118,7 +117,7 @@ ${ writeTap(funTabs) });
       const amountConvertor = arrayConvertor(input.sale.rate.bonus.amount_bonuses);
 
       variableDeclares += `
-${ writeTap(declareTabs) }const bonusTimes = [ ${ timeConvertor("bonus_time_stage", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const bonusTimes = [ ${ timeConvertor("bonus_time_stage").join(", ") } ];
 ${ writeTap(declareTabs) }const bonusTimeValues = [ ${ timeConvertor("bonus_time_ratio").join(", ") } ];
       `;
 
@@ -184,8 +183,8 @@ ${ writeTap(funTabs) });
       const periodConvertor = arrayConvertor(input.sale.stages);
 
       variableDeclares += `
-${ writeTap(declareTabs) }const periodStartTimes = [ ${ periodConvertor("start_time", convertDateString).join(", ") } ];
-${ writeTap(declareTabs) }const periodEndTimes = [ ${ periodConvertor("end_time", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const periodStartTimes = [ ${ periodConvertor("start_time").join(", ") } ];
+${ writeTap(declareTabs) }const periodEndTimes = [ ${ periodConvertor("end_time").join(", ") } ];
 ${ writeTap(declareTabs) }const periodCapRatios = [ ${ periodConvertor("cap_ratio").join(", ") } ];
 ${ writeTap(declareTabs) }const periodMaxPurchaseLimits = [ ${ periodConvertor("max_purchase_limit").join(", ") } ];
 ${ writeTap(declareTabs) }const periodMinPurchaseLimits = [ ${ periodConvertor("min_purchase_limit").join(", ") } ];
@@ -212,7 +211,7 @@ ${ writeTap(funTabs) });
       const releaseConvertor = arrayConvertor(release);
 
       variableDeclares += `
-${ writeTap(declareTabs) }const release${ i }Times = [ ${ releaseConvertor("release_time", convertDateString).join(", ") } ];
+${ writeTap(declareTabs) }const release${ i }Times = [ ${ releaseConvertor("release_time").join(", ") } ];
 ${ writeTap(declareTabs) }const release${ i }Ratios = [ ${ releaseConvertor("release_ratio").join(", ") } ];
 `;
 

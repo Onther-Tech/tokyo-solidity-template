@@ -42,36 +42,35 @@ module.exports = async function (deployer, network, accounts) {
       <%- input.sale.coeff %>
     ],
     [
-      Locker,
-      <%- helper.writeLockerArguments(input, 3) %>
-    ]
-  ]).then(async () => {
-    kyc = await KYC.deployed();
-    vault = await Vault.deployed();
-    locker = await Locker.deployed();
-
-    address.kyc = kyc.address;
-    address.vault = vault.address;
-    address.locker = locker.address;
-  }).then(() => deployer.deploy([
-    [
       Token,
       // token arguments...
       <%- helper.writeTokenArguments(input, 3) %>
     ]
-  ])).then(async () => {
+  ]).then(async () => {
+    kyc = await KYC.deployed();
+    vault = await Vault.deployed();
     token = await Token.deployed();
 
+    address.kyc = kyc.address;
+    address.vault = vault.address;
     address.token = token.address;
-
-    console.log(data);
-
-  }).then(() => deployer.deploy([[
-    Crowdsale,
+  }).then(async () => deployer.deploy([
     [
-      <%- helper.writeConstructorArguments(parseResult, 3) %>
-    ].map(toLeftPaddedBuffer)
-  ]])).then(async () => {
+      Locker,
+      <%- helper.writeLockerArguments(input, 4) %>
+    ],
+  ])).then(async () => {
+    locker = await Locker.deployed();
+
+    address.locker = locker.address;
+  }).then(() => deployer.deploy([
+    [
+      Crowdsale,
+      [
+        <%- helper.writeConstructorArguments(parseResult, 4) %>
+      ].map(toLeftPaddedBuffer)
+    ]
+  ])).then(async () => {
     crowdsale = await Crowdsale.deployed();
 
     address.crowdsale = crowdsale.address;
@@ -84,7 +83,7 @@ module.exports = async function (deployer, network, accounts) {
       vault.transferOwnership(crowdsale.address),
       locker.transferOwnership(crowdsale.address),
       <%- writeTransferTokenOwnership() -%>,
-    ])
+    ]);
 
   });
 };

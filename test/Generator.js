@@ -1,5 +1,5 @@
 import rimraf from "rimraf";
-import schema from "../tokyo-schema/src";
+import schema from "tokyo-schema";
 import Generator from "../src/lib/Generator";
 
 const verbose = process.env.VERBOSE || false;
@@ -10,7 +10,7 @@ const should = require("chai")
 
 const remove = (...args) => !verbose && rimraf.sync(...args);
 
-const sampleInput = schema.validate(require("./tokyo-test-data/sample1.json")).value;
+const sampleInput = schema.validate(require("tokyo-test-data/sample1.json")).value;
 
 describe("Generator", () => {
   it("should generate", async () => {

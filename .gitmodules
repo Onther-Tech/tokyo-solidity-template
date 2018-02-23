@@ -1,9 +1,9 @@
 [submodule "test/tokyo-test-data"]
-	path = test/tokyo-test-data
+	path = submodules/tokyo-test-data
 	url = https://github.com/Onther-Tech/tokyo-test-data.git
 [submodule "tokyo-reusable-crowdsale"]
-	path = tokyo-reusable-crowdsale
+	path = submodules/tokyo-reuesable-crowdsale
 	url = https://github.com/Onther-Tech/tokyo-reusable-crowdsale.git
 [submodule "tokyo-schema"]
-	path = tokyo-schema
+	path = submodules/tokyo-schema
 	url = https://github.com/Onther-Tech/tokyo-schema.git

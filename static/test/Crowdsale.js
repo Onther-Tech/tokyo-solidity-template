@@ -372,15 +372,38 @@ contract("SampleProjectCrowdsale", async ([ owner, other, investor1, investor2, 
 
       (await token.balanceOf(investor))
         .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+
+      (await crowdsale.weiRaised())
+        .should.be.bignumber.equal(ether(1000));
+    });
+  });
+
+  describe("After stage 2 finished", async () => {
+    const targetTime = input.sale.stages[ 1 ].end_time + 10;
+
+    it(`increase time to ${ targetTime }`, async () => {
+      await increaseTimeTo(targetTime)
+        .should.be.fulfilled;
     });
 
-    it("should finalize crowdsale", async () => {
-      const totalSupply = await token.totalSupply();
+    it("should finalize crowdsale and distribute token correctly", async () => {
+      const tokenDistributions = input.sale.distribution.token;
+      const lockerRatio = tokenDistributions
+        .filter(t => t.token_holder === "locker")[ 0 ].token_ratio;
+      const saleRatio = tokenDistributions
+        .filter(t => t.token_holder === "crowdsale")[ 0 ].token_ratio;
+
+      const saleAmounts = await token.totalSupply();
 
       await crowdsale.finalize()
         .should.be.fulfilled;
 
-      const totalSupply2 = await token.totalSupply();
+      const totalSupply = await token.totalSupply();
+
+      const lockerAmounts = await token.balanceOf(locker.address);
+
+      lockerAmounts.should.be.bignumber.equal(totalSupply.mul(lockerRatio).div(coeff));
+      saleAmounts.should.be.bignumber.equal(totalSupply.mul(saleRatio).div(coeff));
     });
   });
 });

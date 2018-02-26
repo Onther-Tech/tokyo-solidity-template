@@ -1,23 +1,11 @@
 import moment from "moment";
 import {
-  writeTap,
+  writeTabs,
   convertAddress,
 } from "./templateHelper";
 
 // common constructor parameters for ZeppelinBaseCrowdsale & MiniMeBaseCrowdsale
 // [ [solidity data type], [path for lodash.get] ]
-const defaultConstructors = input => [
-  ["uint", "input.sale.start_time", input.sale.start_time],
-  ["uint", "input.sale.end_time", input.sale.end_time],
-  ["uint", "input.sale.rate.base_rate", input.sale.rate.base_rate],
-  ["uint", "input.sale.coeff", input.sale.coeff],
-  ["uint", "input.sale.max_cap", input.sale.max_cap],
-  ["uint", "input.sale.min_cap", input.sale.min_cap],
-  ["address", "address.vault"],
-  ["address", "address.locker"],
-  ["address", "input.sale.new_token_owner", input.sale.new_token_owner],
-];
-
 const arrayConvertor = array => (key, convertor) =>
   array.map(s => (convertor ? convertor(s[ key ]) : s[ key ]));
 
@@ -44,36 +32,80 @@ export default class Parser {
     const meta = {};
     const token = f(); // for token contract
     const crowdsale = f(); // for crowdsale contract
-    const migration = {}; // for truffle migration script
+    const codes = { // solidity or JS source code
+      migration: "",
+      crowdsale: {
+        init: "",
+        generateTokens: "",
+      },
+    };
     const constructors = {}; // for constructors for Crowdsale, Locker
 
     let crowdsaleConstructorArgumentLength = 0;
 
-    let variableDeclares = ""; // JS variable declarations
-    const declareTabs = 2; // tab level for declaration
-
-    let initBody = ""; // send TXs to initialize contracts
-    const funTabs = 2; // tab level for function body
+    const tab2 = 2;
+    const tab3 = 3;
 
     meta.projectName = input.project_name.replace(/\W/g, "");
+
+    codes.migration += `
+${ writeTabs(tab2) }const tokenDistributions = get(data, "input.sale.distribution.token");
+${ writeTabs(tab2) }const lockerRatios = tokenDistributions
+${ writeTabs(tab3) }.filter(t => t.token_holder === "locker")[0].token_ratio;
+${ writeTabs(tab2) }const crowdsaleRatio = tokenDistributions
+${ writeTabs(tab3) }.filter(t => t.token_holder === "crowdsale")[0].token_ratio;
+  `;
+
+    // BaseCrowdsale.init()
+    const initMigVars = [
+      'new BigNumber(get(data, \"input.sale.start_time\"))',
+      'new BigNumber(get(data, \"input.sale.end_time\"))',
+      'new BigNumber(get(data, \"input.sale.rate.base_rate\"))',
+      'new BigNumber(get(data, \"input.sale.coeff\"))',
+      'new BigNumber(get(data, \"input.sale.max_cap\"))',
+      'new BigNumber(get(data, \"input.sale.min_cap\"))',
+      "new BigNumber(lockerRatios)",
+      "new BigNumber(crowdsaleRatio)",
+      'get(data, \"address.vault\")',
+      'get(data, \"address.locker\")',
+      'get(data, \"input.sale.new_token_owner\")',
+    ];
+
+    codes.migration += `
+${ writeTabs(tab2) }const initArgs = [${ initMigVars.map(expr => `\n${ writeTabs(tab3) }${ expr }`).join() }
+${ writeTabs(tab2) }];
+${ writeTabs(tab2) }
+${ writeTabs(tab2) }await crowdsale.init(initArgs.map(toLeftPaddedBuffer));
+`;
 
     // BaseCrowdsale
     crowdsale.parentsList.push("BaseCrowdsale");
     crowdsale.importStatements.push("import \"./base/crowdsale/BaseCrowdsale.sol\";");
-    constructors.BaseCrowdsale = defaultConstructors(input);
+    constructors.BaseCrowdsale = [];
 
     // HolderBase.initHolders
-    variableDeclares += `
-${ writeTap(declareTabs) }const holderAddresses = get(data, "input.sale.distribution.ether").map(e => e.ether_holder);
-${ writeTap(declareTabs) }const holderRatios = get(data, "input.sale.distribution.ether").map(e => e.ether_ratio);
+    codes.migration += `
+${ writeTabs(tab2) }const holderAddresses = get(data, "input.sale.distribution.ether").map(e => e.ether_holder);
+${ writeTabs(tab2) }const holderRatios = get(data, "input.sale.distribution.ether").map(e => e.ether_ratio);
     `;
 
-    initBody += `
-${ writeTap(funTabs) }await vault.initHolders(
-${ writeTap(funTabs + 1) }holderAddresses,
-${ writeTap(funTabs + 1) }holderRatios
-${ writeTap(funTabs) });
+    codes.migration += `
+${ writeTabs(tab2) }await vault.initHolders(
+${ writeTabs(tab3) }holderAddresses,
+${ writeTabs(tab3) }holderRatios,
+${ writeTabs(tab2) });
+    `;
+
+    // input.sale.distribution.tokens
+    for (const { token_holder, token_ratio } of input.sale.distribution.token) {
+      if (["crowdsale", "locker".includes(token_holder)]) {
+        continue; // both are included in BaseCrowdsale constructor
+      }
+
+      codes.crowdsale.generateTokens += `
+  ${ writeTabs(tab2) }generateTokens(${ token_holder }, _targetTotalSupply, ${ token_ratio });
 `;
+    }
 
     // parse input.token
     if (input.token.token_type.is_minime) {
@@ -116,28 +148,28 @@ ${ writeTap(funTabs) });
       const timeConvertor = arrayConvertor(input.sale.rate.bonus.time_bonuses);
       const amountConvertor = arrayConvertor(input.sale.rate.bonus.amount_bonuses);
 
-      variableDeclares += `
-${ writeTap(declareTabs) }const bonusTimes = [ ${ timeConvertor("bonus_time_stage").join(", ") } ];
-${ writeTap(declareTabs) }const bonusTimeValues = [ ${ timeConvertor("bonus_time_ratio").join(", ") } ];
+      codes.migration += `
+${ writeTabs(tab2) }const bonusTimes = [ ${ timeConvertor("bonus_time_stage").join(", ") } ];
+${ writeTabs(tab2) }const bonusTimeValues = [ ${ timeConvertor("bonus_time_ratio").join(", ") } ];
       `;
 
-      initBody += `
-${ writeTap(funTabs) }await crowdsale.setBonusesForTimes(
-${ writeTap(funTabs + 1) }bonusTimes,
-${ writeTap(funTabs + 1) }bonusTimeValues
-${ writeTap(funTabs) });
+      codes.migration += `
+${ writeTabs(tab2) }const bonusAmounts = [ ${ amountConvertor("bonus_amount_stage", BNConvertor).join(", ") } ];
+${ writeTabs(tab2) }const bonusAmountValues = [ ${ amountConvertor("bonus_amount_ratio").join(", ") } ];
 `;
 
-      variableDeclares += `
-${ writeTap(declareTabs) }const bonusAmounts = [ ${ amountConvertor("bonus_amount_stage", BNConvertor).join(", ") } ];
-${ writeTap(declareTabs) }const bonusAmountValues = [ ${ amountConvertor("bonus_amount_ratio").join(", ") } ];
+      codes.migration += `
+${ writeTabs(tab2) }await crowdsale.setBonusesForTimes(
+${ writeTabs(tab3) }bonusTimes,
+${ writeTabs(tab3) }bonusTimeValues,
+${ writeTabs(tab2) });
 `;
 
-      initBody += `
-${ writeTap(funTabs) }await crowdsale.setBonusesForAmounts(
-${ writeTap(funTabs + 1) }bonusAmounts,
-${ writeTap(funTabs + 1) }bonusAmountValues
-${ writeTap(funTabs) });
+      codes.migration += `
+${ writeTabs(tab2) }await crowdsale.setBonusesForAmounts(
+${ writeTabs(tab3) }bonusAmounts,
+${ writeTabs(tab3) }bonusAmountValues,
+${ writeTabs(tab2) });
 `;
     }
 
@@ -182,24 +214,24 @@ ${ writeTap(funTabs) });
       // StagedCrowdsale.initPeriods
       const periodConvertor = arrayConvertor(input.sale.stages);
 
-      variableDeclares += `
-${ writeTap(declareTabs) }const periodStartTimes = [ ${ periodConvertor("start_time").join(", ") } ];
-${ writeTap(declareTabs) }const periodEndTimes = [ ${ periodConvertor("end_time").join(", ") } ];
-${ writeTap(declareTabs) }const periodCapRatios = [ ${ periodConvertor("cap_ratio").join(", ") } ];
-${ writeTap(declareTabs) }const periodMaxPurchaseLimits = [ ${ periodConvertor("max_purchase_limit").join(", ") } ];
-${ writeTap(declareTabs) }const periodMinPurchaseLimits = [ ${ periodConvertor("min_purchase_limit").join(", ") } ];
-${ writeTap(declareTabs) }const periodKycs = [ ${ periodConvertor("kyc").join(", ") } ];
+      codes.migration += `
+${ writeTabs(tab2) }const periodStartTimes = [ ${ periodConvertor("start_time").join(", ") } ];
+${ writeTabs(tab2) }const periodEndTimes = [ ${ periodConvertor("end_time").join(", ") } ];
+${ writeTabs(tab2) }const periodCapRatios = [ ${ periodConvertor("cap_ratio").join(", ") } ];
+${ writeTabs(tab2) }const periodMaxPurchaseLimits = [ ${ periodConvertor("max_purchase_limit").join(", ") } ];
+${ writeTabs(tab2) }const periodMinPurchaseLimits = [ ${ periodConvertor("min_purchase_limit").join(", ") } ];
+${ writeTabs(tab2) }const periodKycs = [ ${ periodConvertor("kyc").join(", ") } ];
 `;
 
-      initBody += `
-${ writeTap(funTabs) }await crowdsale.initPeriods(
-${ writeTap(funTabs + 1) }periodStartTimes,
-${ writeTap(funTabs + 1) }periodEndTimes,
-${ writeTap(funTabs + 1) }periodCapRatios,
-${ writeTap(funTabs + 1) }periodMaxPurchaseLimits,
-${ writeTap(funTabs + 1) }periodMinPurchaseLimits,
-${ writeTap(funTabs + 1) }periodKycs
-${ writeTap(funTabs) });
+      codes.migration += `
+${ writeTabs(tab2) }await crowdsale.initPeriods(
+${ writeTabs(tab3) }periodStartTimes,
+${ writeTabs(tab3) }periodEndTimes,
+${ writeTabs(tab3) }periodCapRatios,
+${ writeTabs(tab3) }periodMaxPurchaseLimits,
+${ writeTabs(tab3) }periodMinPurchaseLimits,
+${ writeTabs(tab3) }periodKycs,
+${ writeTabs(tab2) });
 `;
     }
 
@@ -210,20 +242,59 @@ ${ writeTap(funTabs) });
 
       const releaseConvertor = arrayConvertor(release);
 
-      variableDeclares += `
-${ writeTap(declareTabs) }const release${ i }Times = [ ${ releaseConvertor("release_time").join(", ") } ];
-${ writeTap(declareTabs) }const release${ i }Ratios = [ ${ releaseConvertor("release_ratio").join(", ") } ];
+      codes.migration += `
+${ writeTabs(tab2) }const release${ i }Times = [ ${ releaseConvertor("release_time").join(", ") } ];
+${ writeTabs(tab2) }const release${ i }Ratios = [ ${ releaseConvertor("release_ratio").join(", ") } ];
 `;
 
-      initBody += `
-${ writeTap(funTabs) }await locker.lock(
-${ writeTap(funTabs + 1) }${ convertAddress(address) },
-${ writeTap(funTabs + 1) }${ is_straight },
-${ writeTap(funTabs + 1) }release${ i }Times,
-${ writeTap(funTabs + 1) }release${ i }Ratios
-${ writeTap(funTabs) });
-`;
+      codes.migration += `
+${ writeTabs(tab2) }await locker.lock(
+${ writeTabs(tab3) }${ convertAddress(address) },
+${ writeTabs(tab3) }${ is_straight },
+${ writeTabs(tab3) }release${ i }Times,
+${ writeTabs(tab3) }release${ i }Ratios,
+${ writeTabs(tab2) });
+    `;
     }
+
+    // BaseCrowdsale.init()
+    const intVars = ["_startTime", "_endTime", "_rate", "_coeff", "_cap", "_goal", "_lockerRatio", "_crowdsaleRatio"];
+    const addrVars = ["_vault", "_locker", "_nextTokenOwner"];
+
+    i = 0;
+    for (const varName of intVars) {
+      codes.crowdsale.init += `${ writeTabs(tab2) }uint ${ varName } = uint(args[${ i++ }]);\n`;
+    }
+
+    for (const varName of addrVars) {
+      codes.crowdsale.init += `${ writeTabs(tab2) }address ${ varName } = address(args[${ i++ }]);\n`;
+    }
+
+    codes.crowdsale.init += `
+${ writeTabs(tab2) }require(_startTime >= now);
+${ writeTabs(tab2) }require(_endTime >= _startTime);
+${ writeTabs(tab2) }require(_rate > 0);
+${ writeTabs(tab2) }require(_coeff > 0);
+${ writeTabs(tab2) }require(_cap > 0);
+${ writeTabs(tab2) }require(_goal > 0);
+${ writeTabs(tab2) }require(_lockerRatio > 0);
+${ writeTabs(tab2) }require(_crowdsaleRatio > 0);
+${ writeTabs(tab2) }require(_vault != address(0));
+${ writeTabs(tab2) }require(_locker != address(0));
+${ writeTabs(tab2) }require(_nextTokenOwner != address(0));
+${ writeTabs(tab2) }
+${ writeTabs(tab2) }startTime = _startTime;
+${ writeTabs(tab2) }endTime = _endTime;
+${ writeTabs(tab2) }rate = _rate;
+${ writeTabs(tab2) }coeff = _coeff;
+${ writeTabs(tab2) }cap = _cap;
+${ writeTabs(tab2) }goal = _goal;
+${ writeTabs(tab2) }lockerRatio = _lockerRatio;
+${ writeTabs(tab2) }crowdsaleRatio = _crowdsaleRatio;
+${ writeTabs(tab2) }vault = MultiHolderVault(_vault);
+${ writeTabs(tab2) }locker = Locker(_locker);
+${ writeTabs(tab2) }nextTokenOwner = _nextTokenOwner;
+`;
 
     // constructor for The Crowdsale
     constructors.Crowdsale = [];
@@ -237,10 +308,9 @@ ${ writeTap(funTabs) });
       meta,
       token,
       crowdsale,
-      migration,
+      codes,
       constructors,
-      initBody,
-      variableDeclares,
+      initMigVars,
       crowdsaleConstructorArgumentLength,
     };
   }

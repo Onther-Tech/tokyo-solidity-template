@@ -1,6 +1,7 @@
 const moment = require("moment");
 const get = require("lodash/get");
 const ethUtils = require("ethereumjs-util");
+const schema = require('tokyo-schema');
 
 const BigNumber = web3.BigNumber;
 const { toBuffer, setLengthLeft, addHexPrefix } = ethUtils;
@@ -17,7 +18,8 @@ const Crowdsale = artifacts.require("./<%- helper.getCrowdsaleName(parseResult) 
 module.exports = async function (deployer, network, accounts) {
   console.log(accounts)
   const address = {};
-  const input = getInput();
+  const { value, error } = schema.validate(getInput());
+  const input = value;
 
   const data = { address, input };
 
@@ -75,8 +77,8 @@ module.exports = async function (deployer, network, accounts) {
 
     address.crowdsale = crowdsale.address;
   }).then(async () => {
-    <%- parseResult.variableDeclares -%>
-    <%- parseResult.initBody -%>
+    <%- parseResult.codes.migration -%>
+
   }).then(async () => {
     // transfer ownerships to crowdsale
     await Promise.all([

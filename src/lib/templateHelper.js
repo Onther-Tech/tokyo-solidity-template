@@ -5,7 +5,7 @@ export function serialize(json) {
   return JSON.stringify(json);
 }
 
-export function writeTap(numTap) {
+export function writeTabs(numTap) {
   return "  ".repeat(numTap);
 }
 
@@ -35,7 +35,7 @@ export function flattenArguments(args, startIndex, numTap = 2, withType = true) 
       const argName = getLastName(typeAndPath[ 1 ]);
       const value = withType ? argName : appendParseFunction(type, argName, startIndex + i, withType);
 
-      return `\n${ writeTap(numTap) }${ value }`;
+      return `\n${ writeTabs(numTap) }${ value }`;
     }).join(",");
 }
 
@@ -45,7 +45,7 @@ export function flattenArguments(args, startIndex, numTap = 2, withType = true) 
  * @param { Number } startIndex index of arguments
  */
 export function writeSuperModifier(parentName, args, startIndex) {
-  return `${ writeTap(2) }${ parentName }(${ flattenArguments(args, startIndex, 3, false) })`;
+  return `${ writeTabs(2) }${ parentName }(${ flattenArguments(args, startIndex, 3, false) })`;
 }
 
 /**
@@ -98,7 +98,7 @@ export function writeLockerArguments(input, numTap = 3) {
 
   ret.push(`[${ ratios.join(", ") }]`);
 
-  return ret.join(`,\n${ writeTap(numTap) }`);
+  return ret.join(`,\n${ writeTabs(numTap) }`);
 }
 
 /**
@@ -120,7 +120,7 @@ export function writeConstructorArguments(parseResult, numTap = 2) {
     }
   });
 
-  return `${ ret.join(`\n${ writeTap(numTap) }`) }`;
+  return `${ ret.join(`\n${ writeTabs(numTap) }`) }`;
 }
 
 /**
@@ -144,7 +144,7 @@ export function writeTokenArguments(input, numTap = 2) {
     "\"0x00\"", // token factory
   ];
 
-  return `${ ret.join(`,\n${ writeTap(numTap) }`) }`;
+  return `${ ret.join(`,\n${ writeTabs(numTap) }`) }`;
 }
 
 export function wrapNewBigNumber(value) {

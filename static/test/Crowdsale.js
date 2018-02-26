@@ -1,7 +1,7 @@
 import moment from "moment";
 import get from "lodash/get";
 import range from "lodash/range";
-import schema from "tokyo-schema/src";
+import schema from "tokyo-schema";
 
 import ether from "./helpers/ether";
 import { advanceBlock, advanceManyBlock } from "./helpers/advanceToBlock";
@@ -191,11 +191,11 @@ contract("SampleProjectCrowdsale", async ([ owner, other, investor1, investor2, 
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens over stage max purchase", async () => {
+    it("accept buying tokens over stage max cap", async () => {
       const investor = investor1;
       const investAmount = ether(400);
       const purchaseAmount = ether(390);
-      const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.3
+      const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.15
 
       const tokenAmount = purchaseAmount.mul(rate);
       const tokenBalance = await token.balanceOf(investor);
@@ -257,9 +257,8 @@ contract("SampleProjectCrowdsale", async ([ owner, other, investor1, investor2, 
 
     it("accept buying tokens for valid account and ether amount", async () => {
       const investor = investor1;
-      const investAmount = ether(20); // 390 ether remains for stage 0
+      const investAmount = ether(20);
       const rate = getCurrentRate(input, investAmount); // 200 * 1.15
-      // const rate = baseRate.mul(1.15);
 
       const tokenAmount = investAmount.mul(rate);
       const tokenBalance = await token.balanceOf(investor);
@@ -286,7 +285,7 @@ contract("SampleProjectCrowdsale", async ([ owner, other, investor1, investor2, 
       const investor = investor1;
       const investAmount = ether(400);
 
-      // investor 1 funded 420 ether totally. so he can fund at most 90 ether.
+      // investor 1 funded 420 ether totally. so now he can fund at most 90 ether.
       const purchaseAmount = ether(500).sub(ether(420));
 
       const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.15
@@ -312,7 +311,77 @@ contract("SampleProjectCrowdsale", async ([ owner, other, investor1, investor2, 
         .should.be.fulfilled;
     });
 
-    // TODO: more tests
+    it("reject buying tokens under min purchase", async () => {
+      const investAmount = ether(0.0000001);
+
+      await sendTransaction({
+        from: investor2, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    it("reject buying tokens for unknown account", async () => {
+      const investAmount = ether(10);
+
+      await sendTransaction({
+        from: other, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    it("accept buying tokens for valid account and ether amount", async () => {
+      const investor = investor2;
+      const investAmount = ether(20);
+      const rate = getCurrentRate(input, investAmount); // 200 * 1.1
+
+      const tokenAmount = investAmount.mul(rate);
+      const tokenBalance = await token.balanceOf(investor);
+
+      await advanceBlocks();
+      await sendTransaction({
+        from: investor, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.fulfilled;
+
+      (await token.balanceOf(investor))
+        .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+    });
+
+    it("reject buying tokens within a few blocks", async () => {
+      const investor = investor2;
+      const investAmount = ether(10);
+
+      await sendTransaction({
+        from: investor, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    it("accept buying tokens over personal max purchase limit", async () => {
+      const investor = investor2;
+      const investAmount = ether(600);
+
+      // investor 2 funded 20 ether totally. so now he can fund at most 480 ether.
+      const purchaseAmount = ether(500).sub(ether(20));
+
+      const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.1
+
+      const tokenAmount = purchaseAmount.mul(rate);
+      const tokenBalance = await token.balanceOf(investor);
+
+      await advanceBlocks();
+      await sendTransaction({
+        from: investor, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.fulfilled;
+
+      (await token.balanceOf(investor))
+        .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+    });
+
+    it("should finalize crowdsale", async () => {
+      const totalSupply = await token.totalSupply();
+
+      await crowdsale.finalize()
+        .should.be.fulfilled;
+
+      const totalSupply2 = await token.totalSupply();
+    });
   });
 });
 

@@ -20,5 +20,7 @@ export default function (options, done) {
 
   g.write()
     .then(done)
-    .catch(err => throw err);
+    .catch((err) => {
+      throw err;
+    });
 }

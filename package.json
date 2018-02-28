@@ -4,7 +4,7 @@
   "description": "Make solidity contract based on user input",
   "main": "dist/index.js",
   "scripts": {
-    "build": "babel src --out-dir dist",
+    "build": "babel --presets env,stage-1 --out-dir dist src",
     "test": "mocha --require babel-polyfill --require babel-register --reporter spec||exit 0",
     "test:verbose": "VERBOSE=true npm run test",
     "test:watch": "VERBOSE=true mocha --require babel-polyfill --require babel-register --watch",

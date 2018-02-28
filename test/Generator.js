@@ -1,3 +1,4 @@
+import path from "path";
 import rimraf from "rimraf";
 import schema from "tokyo-schema/src";
 import Generator from "../src/lib/Generator";
@@ -12,10 +13,10 @@ const remove = (...args) => !verbose && rimraf.sync(...args);
 
 describe("Generator", () => {
   it("should generate", async () => {
-    const outName = "test1_out";
-    const g = new Generator(require("tokyo-test-data/sample1.json"), outName);
+    const outputPath = path.resolve(__dirname, "../test1_out");
+    const g = new Generator(require("tokyo-test-data/sample1.json"), true, outputPath);
 
     await g.write();
-    remove(outName);
+    remove(outputPath);
   });
 });

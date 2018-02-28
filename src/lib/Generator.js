@@ -9,8 +9,7 @@ import Builder from "./Builder";
 
 const logger = new Logger(true);
 
-const defaultTargetDirectoryName = "out";
-const defaultTargetPath = resolve(__dirname, "../../");
+const defaultTargetPath = resolve(__dirname, "../../out");
 const defaultTemplPath = resolve(__dirname, "../../templates");
 const defaultStaticPath = resolve(__dirname, "../../static");
 const defaultBaseContractPath = resolve(__dirname, "../../node_modules/tokyo-reusable-crowdsale/contracts");
@@ -22,21 +21,23 @@ const defaultBaseTestHelperPath = resolve(__dirname, "../../node_modules/tokyo-r
  */
 export default class Generator extends Builder {
   constructor(
-    inputJSON,
-    targetDirectoryName = defaultTargetDirectoryName,
+    inputObj,
+    validate = true, // use tokyo-schema
+    targetPath = defaultTargetPath,
     tmplPath = defaultTemplPath,
     staticPath = defaultStaticPath,
     baseContractPath = defaultBaseContractPath,
     baseTestHelperPath = defaultBaseTestHelperPath,
   ) {
-    const { value, error } = schema.validate(inputJSON);
-    const input = value;
+    let input;
 
-    if (error) throw error;
+    if (validate) {
+      input = schema.validate(inputObj).value;
+    } else {
+      input = inputObj;
+    }
 
     super(input);
-
-    const targetPath = resolve(defaultTargetPath, targetDirectoryName); // ../../out
 
     this.path = {
       tmpl: tmplPath, // `/templates`

@@ -9,7 +9,8 @@
     "test:verbose": "VERBOSE=true npm run test",
     "test:watch": "VERBOSE=true mocha --require babel-polyfill --require babel-register --watch",
     "publish": "npm run build && npm publish",
-    "publish:beta": "npm run build && npm publish --tag beta"
+    "publish:beta": "npm run build && npm publish --tag beta",
+    "postinstall": "postinstall-build dist --scripts npm run build"
   },
   "repository": {
     "type": "git",
@@ -41,6 +42,7 @@
     "mkdirp": "^0.5.1",
     "moment": "^2.20.1",
     "ncp": "^2.0.0",
+    "postinstall-build": "^5.0.1",
     "serialize-javascript": "^1.4.0",
     "tokyo-reusable-crowdsale": "file:submodules/tokyo-reuesable-crowdsale",
     "tokyo-schema": "file:submodules/tokyo-schema",

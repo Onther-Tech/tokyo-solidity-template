@@ -10,7 +10,7 @@
     "test:watch": "VERBOSE=true mocha --require babel-polyfill --require babel-register --watch",
     "publish": "npm run build && npm publish",
     "publish:beta": "npm run build && npm publish --tag beta",
-    "postinstall": "postinstall-build dist --scripts npm run build"
+    "postinstall": "postinstall-build dist --script npm run build"
   },
   "repository": {
     "type": "git",

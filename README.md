@@ -3,12 +3,19 @@
 ## Tokyo Solidity Template
 Make solidity contract based on user input
 
+## Usage
+
+### in Terminal
+> beta version doesn't support npm
+
 ```bash
-$ npm run test
-$ npm run test:verbose # will remain test outputs
+$ git clone https://github.com/Onther-Tech/tokyo-solidity-template.git
+$ cd tokyo-solidity-template && git submodule update --init --recursive
+$ npm install && npm run build
+
+# install tokyo-solidity-template as global package
+$ npm install -g .
+
+# generate sample tokyo project
+$ tokyo-solidity-template -i ./submodules/tokyo-test-data/sample1.json
 ```
-
-
-#### TODOs
-- replace tokyo-reusable-crowdsale submodule with npm package?
-- write unit tests

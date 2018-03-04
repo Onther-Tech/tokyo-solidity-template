@@ -2,7 +2,7 @@ import fs from "fs";
 import { resolve, join } from "path";
 import mkdirp from "mkdirp";
 import { ncp } from "ncp";
-import schema from "tokyo-schema/src";
+import schema from "tokyo-schema";
 
 import Logger from "./Logger";
 import Builder from "./Builder";

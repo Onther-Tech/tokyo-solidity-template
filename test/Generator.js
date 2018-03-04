@@ -1,6 +1,6 @@
 import path from "path";
 import rimraf from "rimraf";
-import schema from "tokyo-schema/src";
+import schema from "tokyo-schema";
 import Generator from "../src/lib/Generator";
 
 const verbose = process.env.VERBOSE || false;

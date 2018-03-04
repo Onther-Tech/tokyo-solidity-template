@@ -62,7 +62,8 @@ export default class Generator extends Builder {
     await this._copyStatic();
     await this._copyBaseContracts();
 
-    await super.build(this.path); // Copy templates with user input
+    // DEBUG: super.build() isn't supported by babel
+    await this.build(this.path); // Copy templates with user input
   }
 
   _makeDirectories() {

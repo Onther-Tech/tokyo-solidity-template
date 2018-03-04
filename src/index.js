@@ -2,9 +2,14 @@ import path from "path";
 import fs from "fs";
 import Generator from "./lib/Generator";
 
-const defaultInputPath = "./input.json";
-const defaultOutputPath = "./out";
+export const defaultInputPath = "./input.json";
+export const defaultOutputPath = "./out";
 
+/**
+ * @notice generate tokyo truffle project
+ * @param options Object should contain input path for input json and output path for truffle project
+ * @param done Function callback called after templated generated
+ */
 export default function (options, done) {
   const {
     input = defaultInputPath,
@@ -14,12 +19,13 @@ export default function (options, done) {
   const inputPath = path.isAbsolute(input) ? input : path.resolve(process.cwd(), input);
   const outputPath = path.isAbsolute(output) ? output : path.resolve(process.cwd(), output);
 
-  const inputObj = JSON.parse(path.readFileSync(inputPath));
+  const inputObj = JSON.parse(fs.readFileSync(inputPath));
 
   const g = new Generator(inputObj, true, outputPath);
 
   g.write()
     .then(done)
+    // catch may not be needed
     .catch((err) => {
       throw err;
     });

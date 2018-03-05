@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-
-require("babel-register");
-require("babel-polyfill");
-
 import program from "commander";
 
 import template, { defaultInputPath, defaultOutputPath } from "./index";

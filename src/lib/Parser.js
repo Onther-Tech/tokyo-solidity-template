@@ -58,17 +58,17 @@ ${ writeTabs(tab3) }.filter(t => t.token_holder === "crowdsale")[0].token_ratio;
 
     // BaseCrowdsale.init()
     const initMigVars = [
-      'new BigNumber(get(data, \"input.sale.start_time\"))',
-      'new BigNumber(get(data, \"input.sale.end_time\"))',
-      'new BigNumber(get(data, \"input.sale.rate.base_rate\"))',
-      'new BigNumber(get(data, \"input.sale.coeff\"))',
-      'new BigNumber(get(data, \"input.sale.max_cap\"))',
-      'new BigNumber(get(data, \"input.sale.min_cap\"))',
+      "new BigNumber(get(data, \"input.sale.start_time\"))",
+      "new BigNumber(get(data, \"input.sale.end_time\"))",
+      "new BigNumber(get(data, \"input.sale.rate.base_rate\"))",
+      "new BigNumber(get(data, \"input.sale.coeff\"))",
+      "new BigNumber(get(data, \"input.sale.max_cap\"))",
+      "new BigNumber(get(data, \"input.sale.min_cap\"))",
       "new BigNumber(lockerRatios)",
       "new BigNumber(crowdsaleRatio)",
-      'get(data, \"address.vault\")',
-      'get(data, \"address.locker\")',
-      'get(data, \"input.sale.new_token_owner\")',
+      "get(data, \"address.vault\")",
+      "get(data, \"address.locker\")",
+      "get(data, \"input.sale.new_token_owner\")",
     ];
 
     codes.migration += `

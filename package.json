@@ -13,7 +13,10 @@
     "publish:beta": "npm run build && npm publish --tag beta",
     "postinstall": "postinstall-build dist --script build",
     "lint": "npm run lint:eslint",
-    "lint:eslint": "eslint --fix src/**"
+    "lint:eslint": "eslint --fix {src,test}/**",
+    "submodules:reinstall": "npm run submodules:uninstall && npm run submodules:install",
+    "submodules:uninstall": "npm uninstall tokyo-schema tokyo-test-data tokyo-reusable-crowdsale",
+    "submodules:install": "npm install submodules/tokyo-schema submodules/tokyo-test-data submodules/tokyo-reusable-crowdsale"
   },
   "repository": {
     "type": "git",
@@ -38,7 +41,7 @@
     "ncp": "^2.0.0",
     "postinstall-build": "^5.0.1",
     "serialize-javascript": "^1.4.0",
-    "tokyo-reusable-crowdsale": "file:submodules/tokyo-reuesable-crowdsale",
+    "tokyo-reusable-crowdsale": "file:submodules/tokyo-reusable-crowdsale",
     "tokyo-schema": "file:submodules/tokyo-schema",
     "tokyo-test-data": "file:submodules/tokyo-test-data"
   },

@@ -2,7 +2,7 @@
 	path = submodules/tokyo-test-data
 	url = https://github.com/Onther-Tech/tokyo-test-data.git
 [submodule "tokyo-reusable-crowdsale"]
-	path = submodules/tokyo-reuesable-crowdsale
+	path = submodules/tokyo-reusable-crowdsale
 	url = https://github.com/Onther-Tech/tokyo-reusable-crowdsale.git
 [submodule "tokyo-schema"]
 	path = submodules/tokyo-schema

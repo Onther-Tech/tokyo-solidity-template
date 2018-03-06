@@ -22,7 +22,7 @@ const defaultBaseTestHelperPath = resolve(__dirname, "../../node_modules/tokyo-r
 export default class Generator extends Builder {
   constructor(
     inputObj,
-    validate = true, // use tokyo-schema
+    validate = true, // use tokyo-schema to validate
     targetPath = defaultTargetPath,
     tmplPath = defaultTemplPath,
     staticPath = defaultStaticPath,
@@ -31,8 +31,16 @@ export default class Generator extends Builder {
   ) {
     let input;
 
+    console.log(JSON.stringify(inputObj, null, 2))
+
     if (validate) {
-      input = schema.validate(inputObj).value;
+      const { value, error } = schema.validate(inputObj)
+
+      if (error) {
+        throw error;
+      }
+
+      input = value;
     } else {
       input = inputObj;
     }

@@ -1,3 +1,4 @@
+import schema from "tokyo-schema";
 import memFs from "mem-fs";
 import editor from "mem-fs-editor";
 
@@ -9,9 +10,13 @@ import Parser from "./Parser";
  * @notice Builder read and write template with the input.
  */
 export default class Builder {
-  constructor(input) {
-    this.input = input;
-    this.parser = new Parser(input);
+  constructor(inputObj) {
+    const { value, error } = schema.validate(inputObj);
+    if (error) throw error;
+
+    this.rawInput = inputObj;
+    this.input = value;
+    this.parser = new Parser(value);
 
     this.store = memFs.create();
     this.fs = editor.create(this.store);
@@ -33,7 +38,7 @@ export default class Builder {
   }
 
   getDataObj(parseResult) {
-    return { input: this.input, helper: templateHelper, parseResult };
+    return { input: this.input, rawInput: this.rawInput, helper: templateHelper, parseResult };
   }
 
   writeContracts(parseResult) {

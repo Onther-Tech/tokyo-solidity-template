@@ -85,7 +85,15 @@ ${ writeTabs(tab2) }await crowdsale.init(initArgs.map(toLeftPaddedBuffer));
 
     // HolderBase.initHolders
     codes.migration += `
-${ writeTabs(tab2) }const holderAddresses = get(data, "input.sale.distribution.ether").map(e => e.ether_holder);
+${ writeTabs(tab2) }const holderAddresses = get(data, "input.sale.distribution.ether").map(({ether_holder}) => {
+${ writeTabs(tab2) }  if (isValidAddress(ether_holder)) return ether_holder;
+${ writeTabs(tab2) }  if (ether_holder.includes("multisig")) {
+${ writeTabs(tab2) }    const idx = Number(ether_holder.split("multisig")[1]);
+${ writeTabs(tab2) }    if (!isValidAddress(address.multisigs[idx])) throw new Error("Invalid multisig address", address.multisigs[idx]);
+${ writeTabs(tab2) }
+${ writeTabs(tab2) }    return address.multisigs[idx];
+${ writeTabs(tab2) }  }
+${ writeTabs(tab2) }});
 ${ writeTabs(tab2) }const holderRatios = get(data, "input.sale.distribution.ether").map(e => e.ether_ratio);
     `;
 
@@ -125,12 +133,12 @@ ${ writeTabs(tab2) });
 
       constructors.ZeppelinBaseCrowdsale = [["address", "address.token"]];
 
-      if (input.token.token_option && input.token.token_option.burnable) {
+      if (input.token.token_option.burnable) {
         token.parentsList.push("BurnableToken");
         token.importStatements.push("import \"./base/zeppelin/token/BurnableToken.sol\";");
       }
 
-      if (input.token.token_option && input.token.token_option.pausable) {
+      if (input.token.token_option.pausable) {
         token.parentsList.push("Pausable");
         token.importStatements.push("import \"./base/zeppelin/lifecycle/Pausable.sol\";");
       }

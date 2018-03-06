@@ -12,9 +12,17 @@ const should = require("chai")
 const remove = (...args) => !verbose && rimraf.sync(...args);
 
 describe("Generator", () => {
-  it("should generate", async () => {
-    const outputPath = path.resolve(__dirname, "../test1_out");
-    const g = new Generator(require("tokyo-test-data/sample1.json"), true, outputPath);
+  it("should generate Sample Project", async () => {
+    const outputPath = path.resolve(__dirname, "../test_1_out");
+    const g = new Generator(require("tokyo-test-data/sample1.json"), outputPath);
+
+    await g.write();
+    remove(outputPath);
+  });
+
+  it("should generate RBG", async () => {
+    const outputPath = path.resolve(__dirname, "../test_rbg_out");
+    const g = new Generator(require("tokyo-test-data/rbg.json"), outputPath);
 
     await g.write();
     remove(outputPath);

@@ -45,6 +45,6 @@
         "no-console": "off",
         "newline-per-chained-call": ["error", { "ignoreChainWithDepth": 8 }],
         "no-debugger": "off",
-        "camelcase": "never"
+        "camelcase": "off"
     }
 }

@@ -1,9 +1,7 @@
 import BigNumber from "bignumber.js";
 import moment from "moment";
 
-export function serialize(json) {
-  return JSON.stringify(json);
-}
+export const serialize = JSON.stringify;
 
 export function writeTabs(numTap) {
   return "  ".repeat(numTap);
@@ -66,6 +64,19 @@ export function writeSuperModifiers(parentsList, constructors) {
   });
 
   return `\n${ ret.join("\n") }`;
+}
+
+/**
+ * @notice write Locker's constructor arguments in migration file
+ */
+export function writeMultisigArguments(input, numTap = 3) {
+  if (!input.multisig.use_multisig) {
+    return "";
+  }
+
+  return input.multisig.infos.map(({ num_required, owners }) =>
+      `Multisig.new([${ owners.map(convertAddress).join(", ") }], ${ num_required })`)
+      .join(`,\n${writeTabs(numTap)}`);
 }
 
 /**

@@ -1,10 +1,10 @@
 const moment = require("moment");
 const get = require("lodash/get");
 const ethUtils = require("ethereumjs-util");
-const schema = require('tokyo-schema');
+const schema = require("tokyo-schema").default;
 
 const BigNumber = web3.BigNumber;
-const { toBuffer, setLengthLeft, addHexPrefix } = ethUtils;
+const { toBuffer, setLengthLeft, addHexPrefix, isValidAddress } = ethUtils;
 
 /**
  * Contract Artifacts
@@ -12,6 +12,7 @@ const { toBuffer, setLengthLeft, addHexPrefix } = ethUtils;
 const KYC = artifacts.require("./KYC.sol");
 const Vault = artifacts.require("./MultiHolderVault.sol");
 const Locker = artifacts.require("./Locker.sol");
+const Multisig = artifacts.require("./MultiSigWallet.sol");
 const Token = artifacts.require("./<%- helper.getTokenName(parseResult) -%>.sol");
 const Crowdsale = artifacts.require("./<%- helper.getCrowdsaleName(parseResult) -%>.sol");
 
@@ -24,11 +25,11 @@ module.exports = async function (deployer, network, accounts) {
   const data = { address, input };
 
   // contract instance
-  let kyc, vault, locker, token, crowdsale;
+  let kyc, vault, locker, multisigs, token, crowdsale;
 
   /**
    * Deploy contracts sequentually
-   *  1. KYC / Vault / Locker
+   *  1. KYC / Vault / Locker / Multisigs(optional)
    *  2. Token
    *  3. Crowdsale
    *  4. Initialize contracts
@@ -56,6 +57,12 @@ module.exports = async function (deployer, network, accounts) {
     address.kyc = kyc.address;
     address.vault = vault.address;
     address.token = token.address;
+  }).then(async () => {
+    multisigs = await Promise.all([
+      <%- helper.writeMultisigArguments(input, 3) %>
+    ]);
+
+    address.multisigs = multisigs.map(m => m.address);
   }).then(async () => deployer.deploy([
     [
       Locker,
@@ -91,7 +98,7 @@ module.exports = async function (deployer, network, accounts) {
 };
 
 function getInput() {
-  return JSON.parse('<%- helper.serialize(input) -%>');
+  return JSON.parse('<%- helper.serialize(rawInput) -%>');
 }
 
 function toLeftPaddedBuffer(v) {

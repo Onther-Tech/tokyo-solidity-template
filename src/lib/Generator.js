@@ -2,7 +2,6 @@ import fs from "fs";
 import { resolve, join } from "path";
 import mkdirp from "mkdirp";
 import { ncp } from "ncp";
-import schema from "tokyo-schema";
 
 import Logger from "./Logger";
 import Builder from "./Builder";
@@ -21,31 +20,14 @@ const defaultBaseTestHelperPath = resolve(__dirname, "../../node_modules/tokyo-r
  */
 export default class Generator extends Builder {
   constructor(
-    inputObj,
-    validate = true, // use tokyo-schema to validate
+    input,
     targetPath = defaultTargetPath,
     tmplPath = defaultTemplPath,
     staticPath = defaultStaticPath,
     baseContractPath = defaultBaseContractPath,
     baseTestHelperPath = defaultBaseTestHelperPath,
   ) {
-    let input;
-
-    console.log(JSON.stringify(inputObj, null, 2))
-
-    if (validate) {
-      const { value, error } = schema.validate(inputObj)
-
-      if (error) {
-        throw error;
-      }
-
-      input = value;
-    } else {
-      input = inputObj;
-    }
-
-    super(input);
+    super(input); // validate in Builder's constructor
 
     this.path = {
       tmpl: tmplPath, // `/templates`

@@ -45,8 +45,6 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
   const maxCap = new BigNumber(input.sale.max_cap); // 40000 ether
   const minCap = new BigNumber(input.sale.min_cap); // 5000 ether
 
-  console.log(JSON.stringify(input, null, 2));
-
   before(async () => {
     // load contracts
     kyc = await KYC.deployed();
@@ -505,22 +503,51 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
 
     it("should finalize crowdsale and distribute token correctly", async () => {
       const tokenDistributions = input.sale.distribution.token;
+      const etherDistributions = input.sale.distribution.ether;
+
       const lockerRatio = tokenDistributions
         .filter(t => t.token_holder === "locker")[ 0 ].token_ratio;
       const saleRatio = tokenDistributions
         .filter(t => t.token_holder === "crowdsale")[ 0 ].token_ratio;
 
       const saleAmounts = await token.totalSupply();
+      const totalEtherFunded = await web3.eth.getBalance(vault.address);
 
       await crowdsale.finalize()
         .should.be.fulfilled;
 
       const totalSupply = await token.totalSupply();
-
       const lockerAmounts = await token.balanceOf(locker.address);
 
       lockerAmounts.should.be.bignumber.equal(totalSupply.mul(lockerRatio).div(coeff));
       saleAmounts.should.be.bignumber.equal(totalSupply.mul(saleRatio).div(coeff));
+
+      // token distribution
+      for (const { token_holder, token_ratio} of tokenDistributions) {
+        if (token_holder === 'crowdsale') {
+          continue;
+        }
+
+        let addr;
+        if (token_holder === 'locker') {
+          addr = locker.address;
+        } else {
+          addr = token_holder;
+        }
+
+        const holderBalance = await token.balanceOf(addr);
+
+        holderBalance.should.be.bignumber.equal(totalSupply.mul(token_ratio).div(coeff));
+      }
+
+      // ether distribution
+      for(let i = 0; i < 5; i++) {
+        const holder = (await vault.holders(i))[0];
+        const holderBalance = await web3.eth.getBalance(holder);
+
+        // 20% for each holder
+        holderBalance.should.be.bignumber.equal(totalEtherFunded.div(5));
+      }
     });
   });
 });

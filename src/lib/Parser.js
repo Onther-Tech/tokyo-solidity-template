@@ -106,7 +106,7 @@ ${ writeTabs(tab2) });
 
     // input.sale.distribution.tokens
     for (const { token_holder, token_ratio } of input.sale.distribution.token) {
-      if (["crowdsale", "locker".includes(token_holder)]) {
+      if (["crowdsale", "locker"].includes(token_holder)) {
         continue; // both are included in BaseCrowdsale constructor
       }
 

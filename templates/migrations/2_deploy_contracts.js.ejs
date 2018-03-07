@@ -63,6 +63,7 @@ module.exports = async function (deployer, network, accounts) {
     ]);
 
     address.multisigs = multisigs.map(m => m.address);
+    console.log("Multisigs :", address.multisigs.join(", "));
   }).then(async () => deployer.deploy([
     [
       Locker,

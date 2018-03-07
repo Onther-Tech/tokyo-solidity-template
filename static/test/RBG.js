@@ -523,13 +523,13 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       saleAmounts.should.be.bignumber.equal(totalSupply.mul(saleRatio).div(coeff));
 
       // token distribution
-      for (const { token_holder, token_ratio} of tokenDistributions) {
-        if (token_holder === 'crowdsale') {
+      for (const { token_holder, token_ratio } of tokenDistributions) {
+        if (token_holder === "crowdsale") {
           continue;
         }
 
         let addr;
-        if (token_holder === 'locker') {
+        if (token_holder === "locker") {
           addr = locker.address;
         } else {
           addr = token_holder;
@@ -541,8 +541,8 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       }
 
       // ether distribution
-      for(let i = 0; i < 5; i++) {
-        const holder = (await vault.holders(i))[0];
+      for (let i = 0; i < 5; i++) {
+        const holder = (await vault.holders(i))[ 0 ];
         const holderBalance = await web3.eth.getBalance(holder);
 
         // 20% for each holder

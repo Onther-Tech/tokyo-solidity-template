@@ -75,8 +75,8 @@ export function writeMultisigArguments(input, numTap = 3) {
   }
 
   return input.multisig.infos.map(({ num_required, owners }) =>
-      `Multisig.new([${ owners.map(convertAddress).join(", ") }], ${ num_required })`)
-      .join(`,\n${writeTabs(numTap)}`);
+    `Multisig.new([${ owners.map(convertAddress).join(", ") }], ${ num_required })`)
+    .join(`,\n${ writeTabs(numTap) }`);
 }
 
 /**

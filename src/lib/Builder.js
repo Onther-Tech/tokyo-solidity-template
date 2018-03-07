@@ -38,7 +38,9 @@ export default class Builder {
   }
 
   getDataObj(parseResult) {
-    return { input: this.input, rawInput: this.rawInput, helper: templateHelper, parseResult };
+    return {
+      input: this.input, rawInput: this.rawInput, helper: templateHelper, parseResult,
+    };
   }
 
   writeContracts(parseResult) {

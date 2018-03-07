@@ -36,19 +36,14 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
 
   // test parameteres
   const input = schema.validate(getInput()).value;
-  const etherAmount = getEtherAmount(input);
-  const periodMaxPurchaseLimits = input.sale.stages.map(s => new BigNumber(s.max_purchase_limit));
-
-  const minEtherAmount = new BigNumber(input.sale.valid_purchase.min_purchase_limit);
-  // a purchaser can fund
-  const maxEtherAmount = new BigNumber(input.sale.valid_purchase.max_purchase_limit);
+  const timeBonuses = input.sale.rate.bonus
+    .time_bonuses.map(b => b.bonus_time_ratio); // 20%, 15%, 10%, 5%
 
   const baseRate = new BigNumber(input.sale.rate.base_rate);
-  const e = ether(1);
+  const coeff = new BigNumber(input.sale.coeff); // 10000
 
-  const coeff = new BigNumber(input.sale.coeff);
-  const maxCap = new BigNumber(input.sale.max_cap);
-  const minCap = new BigNumber(input.sale.min_cap);
+  const maxCap = new BigNumber(input.sale.max_cap); // 40000 ether
+  const minCap = new BigNumber(input.sale.min_cap); // 5000 ether
 
   console.log(JSON.stringify(input, null, 2));
 
@@ -81,6 +76,8 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       .should.be.fulfilled;
     await kyc.register(investor2, { from: owner })
       .should.be.fulfilled;
+    await kyc.register(investor3, { from: owner })
+      .should.be.fulfilled;
 
     await advanceBlocks();
   });
@@ -92,84 +89,44 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
     (await crowdsale.cap())
       .should.be.bignumber.equal(maxCap);
 
+    maxCap.should.be.bignumber.equal(ether(40000));
+
     (await crowdsale.goal())
       .should.be.bignumber.equal(minCap);
-
-    const numPeriods = input.sale.stages.length;
-    for (let i = 0; i < numPeriods; i++) {
-      const {
-        start_time,
-        end_time,
-        cap_ratio = 0,
-        max_purchase_limit = 0,
-        min_purchase_limit = 0,
-        kyc = false,
-      } = input.sale.stages[ i ];
-
-      const [
-        pCap,
-        pMaxPurchaseLimit,
-        pMinPurchaseLimit,
-        pWeiRaised, // stage's wei raised
-        pStartTime,
-        pEndTime,
-        pKyc,
-      ] = await crowdsale.periods(i);
-
-      pCap.should.be.bignumber.equal(maxCap.mul(cap_ratio).div(coeff));
-      pMaxPurchaseLimit.should.be.bignumber.equal(max_purchase_limit);
-      pMinPurchaseLimit.should.be.bignumber.equal(min_purchase_limit);
-      pWeiRaised.should.be.bignumber.equal(0);
-      pStartTime.should.be.bignumber.equal(start_time);
-      pEndTime.should.be.bignumber.equal(end_time);
-      pKyc.should.be.equal(kyc);
-    }
   });
 
   describe("Before start time", async () => {
     it("reject buying tokens", async () => {
+      const investAmount = ether(10);
       await sendTransaction({
-        from: investor1, to: crowdsale.address, value: etherAmount, gas,
+        from: investor1, to: crowdsale.address, value: investAmount, gas,
       }).should.be.rejectedWith(EVMThrow);
     });
   });
 
-  describe("After start time (stage 0 started)", async () => {
+  describe("After start time (time bonus 20%)", async () => {
     const targetTime = input.sale.start_time;
-
-    it("check conditions", async () => {
-      (await kyc.registeredAddress(investor1))
-        .should.be.equal(true);
-
-      (await kyc.registeredAddress(investor2))
-        .should.be.equal(true);
-    });
+    const scenarioIndex = 1;
+    const timeBonusIndex = 0;
+    const timeBonus = timeBonuses[ timeBonusIndex ];
 
     it(`increase time to ${ targetTime }`, async () => {
       await increaseTimeTo(targetTime)
         .should.be.fulfilled;
     });
 
-    it("reject buying tokens under min purchase", async () => {
-      const investAmount = minEtherAmount.sub(ether(0.01));
-
-      await sendTransaction({
-        from: investor1, to: crowdsale.address, value: investAmount, gas,
-      }).should.be.rejectedWith(EVMThrow);
-    });
-
     it("reject buying tokens for unknown account", async () => {
-      const investAmount = etherAmount;
+      const investAmount = ether(10);
 
       await sendTransaction({
         from: other, to: crowdsale.address, value: investAmount, gas,
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens for valid account and ether amount", async () => {
+    it("accept buying tokens for valid account", async () => {
       const investor = investor1;
-      const investAmount = ether(10); // 390 ether remains for stage 0
-      const rate = getCurrentRate(input, investAmount); // 200 * 1.2
+      const investAmount = ether(10); // 39990 ether remains
+      const rate = calcRate(baseRate, timeBonus, coeff);
 
       const tokenAmount = investAmount.mul(rate);
 
@@ -191,60 +148,49 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens over stage max cap", async () => {
-      const investor = investor1;
-      const investAmount = ether(400);
-      const purchaseAmount = ether(390);
-      const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.15
+    describe(`Over max cap scenario #${ scenarioIndex }`, async () => {
+      const snapshot2 = new Snapshot();
 
-      const tokenAmount = purchaseAmount.mul(rate);
-      const tokenBalance = await token.balanceOf(investor);
+      before(snapshot2.captureContracts);
+      after(snapshot2.restoreContracts);
 
-      await advanceBlocks();
-      await sendTransaction({
-        from: investor, to: crowdsale.address, value: investAmount, gas,
-      }).should.be.fulfilled;
+      it("accept buying tokens over max cap", async () => {
+        const investor = investor1;
+        const investAmount = maxCap;
+        const fundedAmount = maxCap.sub(ether(10));
 
-      (await token.balanceOf(investor))
-        .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
-    });
-  });
+        const rate = calcRate(baseRate, timeBonus, coeff);
 
-  describe("After stage 0 finished (stage 1 not started)", async () => {
-    const targetTime = (input.sale.stages[ 0 ].end_time + input.sale.stages[ 1 ].start_time) / 2;
+        const tokenAmount = fundedAmount.mul(rate);
+        const tokenBalance = await token.balanceOf(investor);
 
-    it(`increase time to ${ targetTime }`, async () => {
-      await increaseTimeTo(targetTime)
-        .should.be.fulfilled;
-    });
-
-    it("reject buying tokens when stage is not on sale", async () => {
-      const investor = investor2;
-      const investAmounts = range(6).map(i => ether(0.001).mul(10 ** i)); // 0.01 ether, 0.1 ether, .. 1000 ether
-
-      await advanceBlocks();
-      for (const investAmount of investAmounts) {
+        await advanceBlocks();
         await sendTransaction({
           from: investor, to: crowdsale.address, value: investAmount, gas,
-        }).should.be.rejectedWith(EVMThrow);
-      }
+        }).should.be.fulfilled;
+
+        (await token.balanceOf(investor))
+          .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+      });
+
+      it("should finalize crowdsale", async () => {
+        await crowdsale.finalize()
+          .should.be.fulfilled;
+      });
     });
   });
 
-  describe("After stage 1 started (with time bonus 1)", async () => {
-    const targetTime = input.sale.stages[ 1 ].start_time;
+  describe("After start time (time bonus 15%)", async () => {
+    const scenarioIndex = 2;
+    const timeBonusIndex = 1;
+    const timeBonus = timeBonuses[ timeBonusIndex ];
+
+    const targetTime = input.sale.rate.bonus
+      .time_bonuses[ timeBonusIndex - 1 ].bonus_time_stage + 1;
 
     it(`increase time to ${ targetTime }`, async () => {
       await increaseTimeTo(targetTime)
         .should.be.fulfilled;
-    });
-
-    it("reject buying tokens under min purchase", async () => {
-      const investAmount = ether(0.0000001);
-
-      await sendTransaction({
-        from: investor1, to: crowdsale.address, value: investAmount, gas,
-      }).should.be.rejectedWith(EVMThrow);
     });
 
     it("reject buying tokens for unknown account", async () => {
@@ -255,10 +201,88 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens for valid account and ether amount", async () => {
-      const investor = investor1;
-      const investAmount = ether(20);
-      const rate = getCurrentRate(input, investAmount); // 200 * 1.15
+    it("accept buying tokens for valid account", async () => {
+      const investor = investor3;
+      const investAmount = ether(100); // 39890 ether remains
+      const rate = calcRate(baseRate, timeBonus, coeff);
+
+      const tokenAmount = investAmount.mul(rate);
+
+      await advanceBlocks();
+      await sendTransaction({
+        from: investor, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.fulfilled;
+
+      (await token.balanceOf(investor))
+        .should.be.bignumber.equal(tokenAmount);
+    });
+
+    it("reject buying tokens within a few blocks", async () => {
+      const investor = investor3;
+      const investAmount = ether(10);
+
+      await sendTransaction({
+        from: investor, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    describe(`Over max cap scenario #${ scenarioIndex }`, async () => {
+      const snapshot2 = new Snapshot();
+
+      before(snapshot2.captureContracts);
+      after(snapshot2.restoreContracts);
+
+      it("accept buying tokens over stage max cap", async () => {
+        const investor = investor2;
+        const investAmount = maxCap;
+        const fundedAmount = investAmount.sub(ether(110));
+
+        const rate = calcRate(baseRate, timeBonus, coeff);
+
+        const tokenAmount = fundedAmount.mul(rate);
+        const tokenBalance = await token.balanceOf(investor);
+
+        await advanceBlocks();
+        await sendTransaction({
+          from: investor, to: crowdsale.address, value: investAmount, gas,
+        }).should.be.fulfilled;
+
+        (await token.balanceOf(investor))
+          .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+      });
+
+      it("should finalize crowdsale", async () => {
+        await crowdsale.finalize()
+          .should.be.fulfilled;
+      });
+    });
+  });
+
+  describe("After start time (time bonus 10%)", async () => {
+    const scenarioIndex = 3;
+    const timeBonusIndex = 2;
+    const timeBonus = timeBonuses[ timeBonusIndex ];
+
+    const targetTime = input.sale.rate.bonus
+      .time_bonuses[ timeBonusIndex - 1 ].bonus_time_stage + 1;
+
+    it(`increase time to ${ targetTime }`, async () => {
+      await increaseTimeTo(targetTime)
+        .should.be.fulfilled;
+    });
+
+    it("reject buying tokens for unknown account", async () => {
+      const investAmount = ether(10);
+
+      await sendTransaction({
+        from: other, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    it("accept buying tokens for valid account", async () => {
+      const investor = investor3;
+      const investAmount = ether(1000); // 38890 ether remains
+      const rate = calcRate(baseRate, timeBonus, coeff);
 
       const tokenAmount = investAmount.mul(rate);
       const tokenBalance = await token.balanceOf(investor);
@@ -273,50 +297,57 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
     });
 
     it("reject buying tokens within a few blocks", async () => {
-      const investor = investor1;
-      const investAmount = ether(10);
+      const investor = investor3;
+      const investAmount = ether(1000);
 
       await sendTransaction({
         from: investor, to: crowdsale.address, value: investAmount, gas,
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens over personal max purchase limit", async () => {
-      const investor = investor1;
-      const investAmount = ether(400);
+    describe(`Over max cap scenario #${ scenarioIndex }`, async () => {
+      const snapshot2 = new Snapshot();
 
-      // investor 1 funded 420 ether totally. so now he can fund at most 90 ether.
-      const purchaseAmount = ether(500).sub(ether(420));
+      before(snapshot2.captureContracts);
+      after(snapshot2.restoreContracts);
 
-      const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.15
+      it("accept buying tokens over stage max cap", async () => {
+        const investor = investor2;
+        const investAmount = maxCap;
+        const fundedAmount = investAmount.sub(ether(1110));
 
-      const tokenAmount = purchaseAmount.mul(rate);
-      const tokenBalance = await token.balanceOf(investor);
+        const rate = calcRate(baseRate, timeBonus, coeff);
 
-      await advanceBlocks();
-      await sendTransaction({
-        from: investor, to: crowdsale.address, value: investAmount, gas,
-      }).should.be.fulfilled;
+        const tokenAmount = fundedAmount.mul(rate);
+        const tokenBalance = await token.balanceOf(investor);
 
-      (await token.balanceOf(investor))
-        .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+        await advanceBlocks();
+        await sendTransaction({
+          from: investor, to: crowdsale.address, value: investAmount, gas,
+        }).should.be.fulfilled;
+
+        (await token.balanceOf(investor))
+          .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+      });
+
+      it("should finalize crowdsale", async () => {
+        await crowdsale.finalize()
+          .should.be.fulfilled;
+      });
     });
   });
 
-  describe("After time bonus 1 finished (stage 1 not finished)", async () => {
-    const targetTime = input.sale.rate.bonus.time_bonuses[ 1 ].bonus_time_stage;
+  describe("After start time (time bonus 5%)", async () => {
+    const scenarioIndex = 4;
+    const timeBonusIndex = 3;
+    const timeBonus = timeBonuses[ timeBonusIndex ];
+
+    const targetTime = input.sale.rate.bonus
+      .time_bonuses[ timeBonusIndex - 1 ].bonus_time_stage + 1;
 
     it(`increase time to ${ targetTime }`, async () => {
       await increaseTimeTo(targetTime)
         .should.be.fulfilled;
-    });
-
-    it("reject buying tokens under min purchase", async () => {
-      const investAmount = ether(0.0000001);
-
-      await sendTransaction({
-        from: investor2, to: crowdsale.address, value: investAmount, gas,
-      }).should.be.rejectedWith(EVMThrow);
     });
 
     it("reject buying tokens for unknown account", async () => {
@@ -327,10 +358,10 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens for valid account and ether amount", async () => {
-      const investor = investor2;
-      const investAmount = ether(20);
-      const rate = getCurrentRate(input, investAmount); // 200 * 1.1
+    it("accept buying tokens for valid account", async () => {
+      const investor = investor3;
+      const investAmount = ether(10000); // 28890 ether remains
+      const rate = calcRate(baseRate, timeBonus, coeff);
 
       const tokenAmount = investAmount.mul(rate);
       const tokenBalance = await token.balanceOf(investor);
@@ -345,7 +376,7 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
     });
 
     it("reject buying tokens within a few blocks", async () => {
-      const investor = investor2;
+      const investor = investor3;
       const investAmount = ether(10);
 
       await sendTransaction({
@@ -353,16 +384,65 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
       }).should.be.rejectedWith(EVMThrow);
     });
 
-    it("accept buying tokens over personal max purchase limit", async () => {
-      const investor = investor2;
-      const investAmount = ether(600);
+    describe(`Over max cap scenario #${ scenarioIndex }`, async () => {
+      const snapshot2 = new Snapshot();
 
-      // investor 2 funded 20 ether totally. so now he can fund at most 480 ether.
-      const purchaseAmount = ether(500).sub(ether(20));
+      before(snapshot2.captureContracts);
+      after(snapshot2.restoreContracts);
 
-      const rate = getCurrentRate(input, purchaseAmount); // 200 * 1.1
+      it("accept buying tokens over stage max cap", async () => {
+        const investor = investor2;
+        const investAmount = maxCap;
+        const fundedAmount = investAmount.sub(ether(11110));
 
-      const tokenAmount = purchaseAmount.mul(rate);
+        const rate = calcRate(baseRate, timeBonus, coeff);
+
+        const tokenAmount = fundedAmount.mul(rate);
+        const tokenBalance = await token.balanceOf(investor);
+
+        await advanceBlocks();
+        await sendTransaction({
+          from: investor, to: crowdsale.address, value: investAmount, gas,
+        }).should.be.fulfilled;
+
+        (await token.balanceOf(investor))
+          .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+      });
+
+      it("should finalize crowdsale", async () => {
+        await crowdsale.finalize()
+          .should.be.fulfilled;
+      });
+    });
+  });
+
+  describe("After start time (time bonus 0%)", async () => {
+    const scenarioIndex = 5;
+    const timeBonusIndex = 4;
+    const timeBonus = new BigNumber(0);
+
+    const targetTime = input.sale.rate.bonus
+      .time_bonuses[ timeBonusIndex - 1 ].bonus_time_stage + 1;
+
+    it(`increase time to ${ targetTime }`, async () => {
+      await increaseTimeTo(targetTime)
+        .should.be.fulfilled;
+    });
+
+    it("reject buying tokens for unknown account", async () => {
+      const investAmount = ether(10);
+
+      await sendTransaction({
+        from: other, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    it("accept buying tokens for valid account", async () => {
+      const investor = investor3;
+      const investAmount = ether(10000); // 18890 ether remains
+      const rate = calcRate(baseRate, timeBonus, coeff);
+
+      const tokenAmount = investAmount.mul(rate);
       const tokenBalance = await token.balanceOf(investor);
 
       await advanceBlocks();
@@ -372,14 +452,51 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
 
       (await token.balanceOf(investor))
         .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+    });
 
-      (await crowdsale.weiRaised())
-        .should.be.bignumber.equal(ether(1000));
+    it("reject buying tokens within a few blocks", async () => {
+      const investor = investor3;
+      const investAmount = ether(10);
+
+      await sendTransaction({
+        from: investor, to: crowdsale.address, value: investAmount, gas,
+      }).should.be.rejectedWith(EVMThrow);
+    });
+
+    describe(`Over max cap scenario #${ scenarioIndex }`, async () => {
+      const snapshot2 = new Snapshot();
+
+      before(snapshot2.captureContracts);
+      after(snapshot2.restoreContracts);
+
+      it("accept buying tokens over stage max cap", async () => {
+        const investor = investor2;
+        const investAmount = maxCap;
+        const fundedAmount = investAmount.sub(ether(21110));
+
+        const rate = calcRate(baseRate, timeBonus, coeff);
+
+        const tokenAmount = fundedAmount.mul(rate);
+        const tokenBalance = await token.balanceOf(investor);
+
+        await advanceBlocks();
+        await sendTransaction({
+          from: investor, to: crowdsale.address, value: investAmount, gas,
+        }).should.be.fulfilled;
+
+        (await token.balanceOf(investor))
+          .should.be.bignumber.equal(tokenBalance.add(tokenAmount));
+      });
+
+      it("should finalize crowdsale", async () => {
+        await crowdsale.finalize()
+          .should.be.fulfilled;
+      });
     });
   });
 
-  describe("After stage 2 finished", async () => {
-    const targetTime = input.sale.stages[ 1 ].end_time + 10;
+  describe("After sale period ended", async () => {
+    const targetTime = input.sale.end_time + 1;
 
     it(`increase time to ${ targetTime }`, async () => {
       await increaseTimeTo(targetTime)
@@ -409,56 +526,13 @@ contract("RankingBallGoldCrowdsale", async ([ owner, other, investor1, investor2
 });
 
 function getInput() {
-  return JSON.parse('{"project_name":"Sample Project","token":{"token_type":{"is_minime":true},"token_option":{"burnable":true,"pausable":true},"token_name":"Sample String","token_symbol":"SS","decimals":18},"sale":{"max_cap":"4e+21","min_cap":"1e+21","start_time":1521763200,"end_time":1522108800,"coeff":"1000","rate":{"is_static":false,"base_rate":"200","bonus":{"use_time_bonus":true,"use_amount_bonus":true,"time_bonuses":[{"bonus_time_stage":1521849600,"bonus_time_ratio":"100"},{"bonus_time_stage":1522022400,"bonus_time_ratio":"50"}],"amount_bonuses":[{"bonus_amount_stage":"100000000000000000000","bonus_amount_ratio":"200"},{"bonus_amount_stage":"10000000000000000000","bonus_amount_ratio":"100"},{"bonus_amount_stage":"1000000000000000000","bonus_amount_ratio":"50"}]}},"distribution":{"token":[{"token_holder":"crowdsale","token_ratio":"800"},{"token_holder":"locker","token_ratio":"200"}],"ether":[{"ether_holder":"0x557678cf28594495ef4b08a6447726f931f8d787","ether_ratio":"800"},{"ether_holder":"0x557678cf28594495ef4b08a6447726f931f8d788","ether_ratio":"200"}]},"stages":[{"start_time":1521763200,"end_time":1521849600,"cap_ratio":"100","max_purchase_limit":"50000000000000000","min_purchase_limit":"100000000000000","kyc":true},{"start_time":1521936000,"end_time":1522108800,"cap_ratio":"0","max_purchase_limit":"50000000000000000","min_purchase_limit":"100000000000000","kyc":true}],"valid_purchase":{"max_purchase_limit":"500000000000000000000","min_purchase_limit":"10000000000000000","block_interval":20},"new_token_owner":"0x557678cf28594495ef4b08a6447726f931f8d787","multisig":{"multisig_use":true,"num_multisig":1,"multisig_owner":["0x557678cf28594495ef4b08a6447726f931f8d787","0x557678cf28594495ef4b08a6447726f931f8d788"]}},"locker":{"use_locker":true,"beneficiaries":[{"address":"0x557678cf28594495ef4b08a6447726f931f8d787","ratio":"200","is_straight":true,"release":[{"release_time":1522195200,"release_ratio":"300"},{"release_time":1522368000,"release_ratio":"1000"}]},{"address":"0x557678cf28594495ef4b08a6447726f931f8d788","ratio":"800","is_straight":false,"release":[{"release_time":1522108800,"release_ratio":"200"},{"release_time":1522195200,"release_ratio":"500"},{"release_time":1522368000,"release_ratio":"1000"}]}]}}');
+  return JSON.parse('{"project_name":"RankingBall Gold","token":{"token_type":{"is_minime":true},"token_option":{"burnable":true,"pausable":true},"token_name":"RankingBall Gold","token_symbol":"RBG","decimals":18},"sale":{"max_cap":"40000000000000000000000","min_cap":"5000000000000000000000","start_time":"2018/03/12 00:00:00","end_time":"2018/04/11 00:00:00","coeff":"10000","rate":{"is_static":false,"base_rate":"50000","bonus":{"use_time_bonus":true,"use_amount_bonus":false,"time_bonuses":[{"bonus_time_stage":"2018/03/13 00:00:00","bonus_time_ratio":"2000"},{"bonus_time_stage":"2018/03/15 00:00:00","bonus_time_ratio":"1500"},{"bonus_time_stage":"2018/03/18 00:00:00","bonus_time_ratio":"1000"},{"bonus_time_stage":"2018/03/22 00:00:00","bonus_time_ratio":"500"}],"amount_bonuses":[]}},"distribution":{"token":[{"token_holder":"crowdsale","token_ratio":"2500"},{"token_holder":"0x173dF4D12d75c876656196C095f59b20aBCFa34a","_comment":"reserve1","token_ratio":"833"},{"token_holder":"0x73A5dAA05d62e6F60C5cD8d334DfDF9E59C3b14D","_comment":"reserve2","token_ratio":"833"},{"token_holder":"0xc135e061DF4AF2583B2CA2D41E37598856DB62D8","_comment":"reserve3","token_ratio":"834"},{"token_holder":"0xA3C9419b03d1Cb893eD0f2ae772d927f5Bca05A2","_comment":"martketingReserve1","token_ratio":"1000"},{"token_holder":"0x8c15c8709764b279968B647E580bbC3E370BfA87","_comment":"martketingReserve2","token_ratio":"1000"},{"token_holder":"0x2c08a528433570781A953Db7CCDed3a798C0DA9E","_comment":"martketingReserve3","token_ratio":"1000"},{"token_holder":"0x40A15bc3036293dCE89715ac7bB3090E0160e6ba","_comment":"businessPartner","token_ratio":"1000"},{"token_holder":"locker","_comment":"locker for owner and dev team","token_ratio":"1000"}],"ether":[{"ether_holder":"0x2Bc7E12243442146Bdf6dA647cA1feF3EEc04546","ether_ratio":"2000"},{"ether_holder":"0x80e21663Ada7b4929AD67C71E3afC2f77662790D","ether_ratio":"2000"},{"ether_holder":"0x2d9eD0C934B865Deba5eD192225c6F3a49d9e1E7","ether_ratio":"2000"},{"ether_holder":"multisig0","ether_ratio":"2000"},{"ether_holder":"multisig1","ether_ratio":"2000"}]},"stages":[{"start_time":"2018/03/12 00:00:00","end_time":"2018/04/11 00:00:00","cap_ratio":"100","max_purchase_limit":"0","min_purchase_limit":"0","kyc":true}],"valid_purchase":{"max_purchase_limit":"0","min_purchase_limit":"0","block_interval":5},"new_token_owner":"0x557678cf28594495ef4b08a6447726f931f8d787"},"multisig":{"use_multisig":true,"infos":[{"num_required":2,"owners":["0xbB4774A4acCe63Bbbc564dc5C77886B7257DE9b8","0x55E628D4bAb3Aa9aB593717E2a15690254Ed1B04","0x977035241e4BED626965ab21c93ef4eb342b7BDD"]},{"num_required":2,"owners":["0xE21cC11659F79c2D1d185619fD32Dc2C0120D4Ac","0x9DE692A1F1F22e4Be4A890B3adEc0D31E99B6D92","0xEb39b26B44b29A29e55dE2bAaBB5C9b2bf867e2c"]}]},"locker":{"use_locker":true,"beneficiaries":[{"address":"0xC8bF96c3E4db618BE3748d0279dbc9A07Da46E38","ratio":"5000","is_straight":true,"release":[{"release_time":"2018/04/11 00:00:00","release_ratio":"0"},{"release_time":"2020/04/11 00:00:00","release_ratio":"10000"}]},{"address":"0x4aaF7972b9277A100Cf22027261b4333eb3417Bc","ratio":"5000","is_straight":true,"release":[{"release_time":"2018/04/11 00:00:00","release_ratio":"5000"},{"release_time":"2020/04/11 00:00:00","release_ratio":"10000"}]}]}}');
 }
 
-function getCurrentRate(input, amount) {
-  const now = latestTime().unix();
-  const {
-    sale: {
-      coeff,
-      rate: {
-        base_rate,
-        bonus: {
-          use_time_bonus = false,
-          use_amount_bonus = false,
-          time_bonuses = [],
-          amount_bonuses = [],
-        },
-      },
-    },
-  } = input;
+function calcRate(baseRate, bonus, coeff) {
+  const r = new BigNumber(baseRate);
+  const b = new BigNumber(bonus);
+  const c = new BigNumber(coeff);
 
-  let timeBonus = 0,
-    amountBonus = 0;
-
-  if (use_time_bonus) {
-    for (const { bonus_time_stage, bonus_time_ratio } of time_bonuses) {
-      if (now <= bonus_time_stage) {
-        timeBonus = bonus_time_ratio;
-        break;
-      }
-    }
-  }
-
-  if (use_amount_bonus) {
-    for (const { bonus_amount_stage, bonus_amount_ratio } of amount_bonuses) {
-      if (amount.gte(bonus_amount_stage)) {
-        amountBonus = bonus_amount_ratio;
-        break;
-      }
-    }
-  }
-
-  const totalBonus = new BigNumber(timeBonus).add(new BigNumber(amountBonus));
-  const rate = totalBonus.add(coeff).mul(base_rate).div(coeff);
-
-  return rate;
-}
-
-function getEtherAmount(input) {
-  if (input.sale.valid_purchase.min_purchase_limit) {
-    return new BigNumber(input.sale.valid_purchase.min_purchase_limit).add(ether(0.1));
-  }
-  return ether(1);
+  return r.mul(b.add(c)).div(c);
 }

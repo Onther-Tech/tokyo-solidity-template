@@ -13,7 +13,7 @@
     "publish:beta": "npm run build && npm publish --tag beta",
     "postinstall": "postinstall-build dist --script build",
     "lint": "npm run lint:eslint",
-    "lint:eslint": "eslint --fix {src,test}/**",
+    "lint:eslint": "eslint --fix {src,test,static}/**/*.js",
     "submodules:reinstall": "npm run submodules:uninstall && npm run submodules:install",
     "submodules:uninstall": "npm uninstall tokyo-schema tokyo-test-data tokyo-reusable-crowdsale",
     "submodules:install": "npm install submodules/tokyo-schema submodules/tokyo-test-data submodules/tokyo-reusable-crowdsale"

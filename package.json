@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "bin": "dist/bin.js",
   "scripts": {
-    "build": "babel src -d dist",
+    "build": "rimraf dist && babel src -d dist",
     "test": "mocha --require babel-polyfill --require babel-register --reporter spec||exit 0",
     "test:verbose": "VERBOSE=true npm run test",
     "test:watch": "VERBOSE=true mocha --require babel-polyfill --require babel-register --watch",

@@ -8,7 +8,7 @@ program
   .option("-o, --output [output dir path]", `output directory path. default ${ defaultOutputPath }`)
   .parse(process.argv);
 
-async function main() {
+export default async function main() {
   const {
     input = defaultInputPath,
     output = defaultOutputPath,

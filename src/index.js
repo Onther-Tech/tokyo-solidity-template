@@ -21,7 +21,7 @@ export default function (options, done) {
 
   const inputObj = JSON.parse(fs.readFileSync(inputPath));
 
-  const g = new Generator(inputObj, true, outputPath);
+  const g = new Generator(inputObj, outputPath);
 
   g.write()
     .then(done)

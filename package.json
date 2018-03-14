@@ -9,8 +9,6 @@
     "test": "mocha --require babel-polyfill --require babel-register --reporter spec||exit 0",
     "test:verbose": "VERBOSE=true npm run test",
     "test:watch": "VERBOSE=true mocha --require babel-polyfill --require babel-register --watch",
-    "publish": "npm run build && npm publish",
-    "publish:beta": "npm run build && npm publish --tag beta",
     "postinstall": "postinstall-build dist --script build",
     "lint": "npm run lint:eslint",
     "lint:eslint": "eslint --fix {src,test,static}/**/*.js",

@@ -38,10 +38,7 @@
     "moment": "^2.20.1",
     "ncp": "^2.0.0",
     "postinstall-build": "^5.0.1",
-    "serialize-javascript": "^1.4.0",
-    "tokyo-reusable-crowdsale": "file:submodules/tokyo-reusable-crowdsale",
-    "tokyo-schema": "file:submodules/tokyo-schema",
-    "tokyo-test-data": "file:submodules/tokyo-test-data"
+    "serialize-javascript": "^1.4.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
